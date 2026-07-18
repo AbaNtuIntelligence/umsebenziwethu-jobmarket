@@ -1,0 +1,3 @@
+import {useState} from "react";
+import api,{errorMessage} from "../services/api";
+export default function ForgotPasswordPage(){const [message,setMessage]=useState("");async function submit(e){e.preventDefault();try{const {data}=await api.post("/auth/password-reset/",Object.fromEntries(new FormData(e.currentTarget)));setMessage(data.detail);}catch(e){setMessage(errorMessage(e));}}return <div className="auth-card"><h1>Reset password</h1><p>Enter your account email. During local testing, the reset link appears in the Django terminal.</p>{message&&<div className="alert">{message}</div>}<form className="form-stack" onSubmit={submit}><label>Email<input type="email" name="email" required/></label><button className="button primary">Send reset link</button></form></div>}
