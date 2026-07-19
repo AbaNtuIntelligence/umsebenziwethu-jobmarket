@@ -347,3 +347,110 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+.submission-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  color: #123f34;
+  background: #e9f7f0;
+  border: 1px solid #b9dfcf;
+  border-radius: 10px;
+}
+
+.submission-spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 2px solid rgba(19, 122, 85, 0.25);
+  border-top-color: #137a55;
+  border-radius: 50%;
+  animation: submission-spin 700ms linear infinite;
+}
+
+@keyframes submission-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mobile-more-backdrop,
+.mobile-more-panel {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .employer-bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .employer-bottom-nav button.nav-link {
+    width: 100%;
+    padding: 0;
+    font: inherit;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .mobile-more-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    border: 0;
+    background: rgba(7, 22, 36, 0.55);
+  }
+
+  .mobile-more-panel {
+    display: block;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1100;
+    padding: 18px 18px calc(24px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -18px 50px rgba(16, 38, 63, 0.2);
+  }
+
+  .mobile-more-panel header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .mobile-more-panel header div {
+    display: grid;
+    gap: 3px;
+  }
+
+  .mobile-more-panel header small {
+    color: #667085;
+  }
+
+  .mobile-more-panel nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mobile-more-panel .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    color: #10263f;
+    background: #f3f6f8;
+    border-radius: 12px;
+  }
+
+  .mobile-more-panel .nav-link.active {
+    color: #0d624b;
+    background: #e7f5ee;
+  }
+}

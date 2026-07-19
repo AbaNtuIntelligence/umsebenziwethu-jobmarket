@@ -6,7 +6,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from .models import User
+from .models import EmployerProfile, JobSeekerProfile, User
+from rest_framework.exceptions import ValidationError
 from .serializers import AccountDeleteSerializer, EmployerProfileSerializer, JobSeekerProfileSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, RegisterSerializer, UserSerializer
 
 class RegisterView(generics.CreateAPIView):
