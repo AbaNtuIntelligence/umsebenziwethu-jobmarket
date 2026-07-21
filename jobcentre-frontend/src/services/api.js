@@ -6,18 +6,24 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
-api.interceptors.response.use((response) => response, async (error) => {
-  const original = error.config;
-  if (error.response?.status === 401 && !original?._retry && localStorage.getItem("refresh_token")) {
-    original._retry = true;
-    try {
-      const {data} = await axios.post(`${api.defaults.baseURL}/auth/token/refresh/`, {refresh: localStorage.getItem("refresh_token")});
-      localStorage.setItem("access_token", data.access);
-      original.headers.Authorization = `Bearer ${data.access}`;
-      return api(original);
-    } catch { localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token"); }
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token");
+  const method = (config.method || "get").toLowerCase();
+
+  const path = new URL(
+    config.url || "",
+    `${api.defaults.baseURL}/`
+  ).pathname;
+
+  const isPublicJobRead =
+    method === "get" &&
+    /\/jobs(?:\/\d+)?\/$/.test(path);
+
+  if (token && !isPublicJobRead) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return Promise.reject(error);
+
+  return config;
 });
 export default api;
 

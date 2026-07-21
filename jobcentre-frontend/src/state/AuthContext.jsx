@@ -8,7 +8,10 @@ export function AuthProvider({children}) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!localStorage.getItem("access_token")) return setLoading(false);
-    api.get("/auth/me/").then(({data}) => setUser(data)).finally(() => setLoading(false));
+    api.get("/auth/me/")
+  .then(({ data }) => setUser(data))
+  .catch(() => setUser(null))
+  .finally(() => setLoading(false));
   }, []);
   async function login(email, password) {
     const {data} = await api.post("/auth/login/", {email, password});
