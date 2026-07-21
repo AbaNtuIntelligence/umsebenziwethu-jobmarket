@@ -67,12 +67,19 @@ REST_FRAMEWORK = {
 }
 SIMPLE_JWT = {"ACCESS_TOKEN_LIFETIME": timedelta(minutes=30), "REFRESH_TOKEN_LIFETIME": timedelta(days=7)}
 SPECTACULAR_SETTINGS = {"TITLE": "AbaNtu Job Centre API", "VERSION": "1.0.0", "DESCRIPTION": "Employer and job-seeker marketplace API"}
-CORS_ALLOWED_ORIGINS = [x.strip() for x in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",") if x.strip()]
+CORS_ALLOWED_ORIGINS = [
+    x.strip()
+    for x in os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:5173,http://localhost:5174,http://localhost:3000",
+    ).split(",")
+    if x.strip()
+]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
-        "http://localhost:5173,http://localhost:3000",
+        "http://localhost:5173,http://localhost:5174,http://localhost:3000",
     ).split(",")
     if origin.strip()
 ]

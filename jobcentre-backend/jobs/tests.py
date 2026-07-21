@@ -36,6 +36,36 @@ class JobApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["status"], "pending")
 
+    def test_employer_edit_returns_listing_to_pending_review(self):
+        self.client.force_authenticate(self.employer)
+        response = self.client.patch(f"/api/jobs/{self.job.id}/", {"title": "Senior Delivery Driver"}, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.title, "Senior Delivery Driver")
+        self.assertEqual(self.job.status, Job.Status.PENDING)
+
+    def test_job_cannot_be_permanently_deleted(self):
+        self.client.force_authenticate(self.employer)
+        response = self.client.delete(f"/api/jobs/{self.job.id}/")
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue(Job.objects.filter(pk=self.job.id).exists())
+
+    def test_employer_can_close_own_listing(self):
+        self.client.force_authenticate(self.employer)
+        response = self.client.post(f"/api/jobs/{self.job.id}/close/")
+        self.assertEqual(response.status_code, 200)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.Status.CLOSED)
+
+    def test_employer_cannot_edit_another_employers_listing(self):
+        other = User.objects.create_user(email="other-employer@example.com", username="other-employer", role="employer", password="StrongPass778!")
+        EmployerProfile.objects.create(user=other, organisation_name="Other Company")
+        self.client.force_authenticate(other)
+        response = self.client.patch(f"/api/jobs/{self.job.id}/", {"title": "Hijacked title"}, format="json")
+        self.assertEqual(response.status_code, 404)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.title, "Driver")
+
     def test_anonymous_user_can_report_a_job(self):
         response = self.client.post("/api/job-reports/", {"job": self.job.id, "reason": "scam", "details": "Suspicious contact request"})
         self.assertEqual(response.status_code, 201)

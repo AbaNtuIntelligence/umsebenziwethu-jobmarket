@@ -19,6 +19,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ApplicationDetailPage from "./pages/ApplicationDetailPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import InterviewHubPage from "./pages/InterviewHubPage";
+import EditJobPage from "./pages/EditJobPage";
 
 export default function App() {
   return <Routes>
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/interviews" element={<InterviewHubPage />} />
         <Route path="/employer" element={<EmployerDashboard />} />
         <Route path="/post-job" element={<PostJobPage />} />
+        <Route path="/jobs/:id/edit" element={<EditJobPage />} />
         <Route path="/applicants" element={<ApplicantsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />

@@ -3,6 +3,7 @@ from django.db import transaction
 from django.http import FileResponse, Http404
 from django.utils import timezone
 from rest_framework import generics, permissions, status, viewsets
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -44,9 +45,16 @@ class JobViewSet(viewsets.ModelViewSet):
         location_fields = {"latitude", "longitude", "street_address", "public_location", "address_visibility"}
         location_changed = bool(location_fields.intersection(serializer.validated_data))
         serializer.save(
+            status=Job.Status.PENDING,
+            rejection_reason="",
             location_confirmed_by_employer_at=timezone.now() if location_changed else serializer.instance.location_confirmed_by_employer_at,
             location_review_status=Job.LocationReviewStatus.PENDING if location_changed else serializer.instance.location_review_status,
             location_verified_by_admin_at=None if location_changed else serializer.instance.location_verified_by_admin_at,
+        )
+    def destroy(self, request, *args, **kwargs):
+        raise MethodNotAllowed(
+            "DELETE",
+            detail="Job listings cannot be permanently deleted. Close the listing instead to preserve applications and audit history.",
         )
     @staticmethod
     def _distance_km(origin_lat, origin_lon, job):

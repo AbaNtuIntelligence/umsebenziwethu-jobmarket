@@ -4,8 +4,34 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.conf import settings
 from django.utils import timezone
+from jsonschema import ValidationError
 from rest_framework import serializers
 from .models import EmployerProfile, JobSeekerProfile, User
+
+def get_object_and_serializer(self, request):
+    if request.user.role == User.Role.EMPLOYER:
+        profile, _ = EmployerProfile.objects.get_or_create(
+            user=request.user,
+            defaults={
+                "organisation_name": (
+                    request.user.get_full_name().strip()
+                    or request.user.username
+                    or "Employer"
+                )
+            },
+        )
+        return profile, EmployerProfileSerializer
+
+    if request.user.role == User.Role.JOB_SEEKER:
+        profile, _ = JobSeekerProfile.objects.get_or_create(
+            user=request.user
+        )
+        return profile, JobSeekerProfileSerializer
+
+    raise ValidationError({
+        "role": "This account does not have an employer or job-seeker role."
+    })
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -90,3 +116,5 @@ class JobSeekerProfileSerializer(serializers.ModelSerializer):
         model = JobSeekerProfile
         fields = "__all__"
         read_only_fields = ("user", "created_at")
+
+        

@@ -1,12 +1,16 @@
 from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import DefaultRouter, re_path
 from .views import ApplicationCVReplaceView, ApplicationDetailView, ApplicationDocumentCreateView, ApplicationDocumentDownloadView, ApplicationListCreateView, ApplicationStatusView, ApplicationWithdrawView, FeedbackCreateView, InterviewViewSet, JobLocationReportCreateView, JobMediaCreateView, JobMediaDeleteView, JobReportCreateView, JobViewSet, LocationAnalyticsView, NotificationListView, NotificationReadAllView, NotificationReadView, RecruitmentSessionViewSet, SavedJobDeleteView, SavedJobListCreateView, SubmitApplicationView
+from django.conf import settings
+from django.conf.urls.static import static
+from django.views.static import serve
 
 router = DefaultRouter()
 router.register("jobs", JobViewSet, basename="job")
 router.register("interviews", InterviewViewSet, basename="interview")
 router.register("recruitment-sessions", RecruitmentSessionViewSet, basename="recruitment-session")
 urlpatterns = [
+    
     path("", include(router.urls)),
     path("applications/", ApplicationListCreateView.as_view(), name="applications"),
     path("applications/submit/", SubmitApplicationView.as_view(), name="application-submit"),
@@ -27,4 +31,15 @@ urlpatterns = [
     path("job-location-reports/", JobLocationReportCreateView.as_view(), name="job-location-report-create"),
     path("analytics/locations/", LocationAnalyticsView.as_view(), name="location-analytics"),
     path("feedback/", FeedbackCreateView.as_view(), name="feedback-create"),
+
+
+    re_path(
+        r"^media/(?P<path>.*)$",
+        serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
 ]
+urlpatterns += static(
+    settings.MEDIA_URL,
+    document_root=settings.MEDIA_ROOT
+)
