@@ -1,0 +1,26 @@
+.listing-management {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: -7px 0 20px;
+}
+
+.listing-management svg {
+  width: 18px;
+}
+
+.listing-management button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 720px) {
+  .listing-management {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .listing-management .button {
+    width: 100%;
+  }
+}
