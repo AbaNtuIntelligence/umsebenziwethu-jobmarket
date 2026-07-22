@@ -18,6 +18,54 @@
   display: none;
 }
 
+.resume-upload {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  overflow: hidden;
+  border: 2px dashed #b9c2cf;
+  border-radius: 12px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+.resume-upload > svg,
+.resume-current > svg {
+  width: 24px;
+  color: var(--green);
+}
+
+.resume-upload span {
+  display: grid;
+  gap: 3px;
+}
+
+.resume-upload small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.resume-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.resume-current {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  color: var(--green);
+  background: #eaf5ef;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
 @media (max-width: 720px) {
   .mobile-menu-toggle {
     display: grid;

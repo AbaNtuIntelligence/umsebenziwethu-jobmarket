@@ -26,8 +26,10 @@ class MeView(APIView):
 class ProfileView(APIView):
     def get_object_and_serializer(self, request):
         if request.user.role == User.Role.EMPLOYER:
-            return request.user.employer_profile, EmployerProfileSerializer
-        return request.user.job_seeker_profile, JobSeekerProfileSerializer
+            profile, _ = EmployerProfile.objects.get_or_create(user=request.user, defaults={"organisation_name": request.user.username})
+            return profile, EmployerProfileSerializer
+        profile, _ = JobSeekerProfile.objects.get_or_create(user=request.user)
+        return profile, JobSeekerProfileSerializer
     def get(self, request):
         obj, serializer_class = self.get_object_and_serializer(request)
         return Response(serializer_class(obj).data)

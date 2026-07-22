@@ -4,43 +4,23 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.conf import settings
 from django.utils import timezone
-from jsonschema import ValidationError
 from rest_framework import serializers
 from .models import EmployerProfile, JobSeekerProfile, User
-
-def get_object_and_serializer(self, request):
-    if request.user.role == User.Role.EMPLOYER:
-        profile, _ = EmployerProfile.objects.get_or_create(
-            user=request.user,
-            defaults={
-                "organisation_name": (
-                    request.user.get_full_name().strip()
-                    or request.user.username
-                    or "Employer"
-                )
-            },
-        )
-        return profile, EmployerProfileSerializer
-
-    if request.user.role == User.Role.JOB_SEEKER:
-        profile, _ = JobSeekerProfile.objects.get_or_create(
-            user=request.user
-        )
-        return profile, JobSeekerProfileSerializer
-
-    raise ValidationError({
-        "role": "This account does not have an employer or job-seeker role."
-    })
-
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     organisation_name = serializers.CharField(write_only=True, required=False)
     accept_terms = serializers.BooleanField(write_only=True)
     invite_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    professional_headline = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    skills = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    province = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    city = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    availability = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    resume = serializers.FileField(write_only=True, required=False, allow_null=True)
     class Meta:
         model = User
-        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "password", "organisation_name", "accept_terms", "invite_code")
+        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "password", "organisation_name", "professional_headline", "skills", "province", "city", "availability", "resume", "accept_terms", "invite_code")
         read_only_fields = ("id",)
     def validate(self, attrs):
         if not attrs.get("accept_terms"):
@@ -49,16 +29,27 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"invite_code": "A valid pilot invitation code is required."})
         if attrs.get("role") == User.Role.EMPLOYER and not attrs.get("organisation_name"):
             raise serializers.ValidationError({"organisation_name": "Required for employers."})
+        resume = attrs.get("resume")
+        if resume:
+            if getattr(resume, "content_type", "") != "application/pdf":
+                raise serializers.ValidationError({"resume": "Upload your résumé as a PDF file."})
+            if resume.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError({"resume": "Résumé must be 5 MB or smaller."})
         return attrs
     def create(self, validated_data):
         validated_data.pop("accept_terms")
         validated_data.pop("invite_code", None)
         organisation_name = validated_data.pop("organisation_name", "")
+        seeker_data = {
+            key: validated_data.pop(key, "")
+            for key in ("professional_headline", "skills", "province", "city", "availability")
+        }
+        resume = validated_data.pop("resume", None)
         user = User.objects.create_user(**validated_data, terms_accepted_at=timezone.now())
         if user.role == User.Role.EMPLOYER:
             EmployerProfile.objects.create(user=user, organisation_name=organisation_name)
         else:
-            JobSeekerProfile.objects.create(user=user)
+            JobSeekerProfile.objects.create(user=user, resume=resume, **seeker_data)
         return user
 
 class UserSerializer(serializers.ModelSerializer):
@@ -112,9 +103,16 @@ class EmployerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ("user", "is_verified", "created_at")
 
 class JobSeekerProfileSerializer(serializers.ModelSerializer):
+    resume = serializers.FileField(required=False, allow_null=True)
     class Meta:
         model = JobSeekerProfile
         fields = "__all__"
         read_only_fields = ("user", "created_at")
-
-        
+    def validate_resume(self, value):
+        if value is None:
+            return value
+        if getattr(value, "content_type", "") != "application/pdf":
+            raise serializers.ValidationError("Upload your résumé as a PDF file.")
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Résumé must be 5 MB or smaller.")
+        return value

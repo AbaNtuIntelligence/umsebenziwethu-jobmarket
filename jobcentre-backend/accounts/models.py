@@ -1,6 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
+def job_seeker_resume_path(instance, filename):
+    return f"resumes/{instance.user_id}/{filename}"
+
 class User(AbstractUser):
     class Role(models.TextChoices):
         EMPLOYER = "employer", "Employer"
@@ -30,7 +34,9 @@ class JobSeekerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="job_seeker_profile")
     province = models.CharField(max_length=100, blank=True)
     city = models.CharField(max_length=100, blank=True)
+    professional_headline = models.CharField(max_length=160, blank=True)
     skills = models.TextField(blank=True, help_text="Comma-separated skills")
     bio = models.TextField(blank=True)
     availability = models.CharField(max_length=100, blank=True)
+    resume = models.FileField(upload_to=job_seeker_resume_path, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

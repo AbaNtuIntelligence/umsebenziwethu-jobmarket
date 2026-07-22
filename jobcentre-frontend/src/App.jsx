@@ -20,6 +20,7 @@ import ApplicationDetailPage from "./pages/ApplicationDetailPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import InterviewHubPage from "./pages/InterviewHubPage";
 import EditJobPage from "./pages/EditJobPage";
+import RoleRoute from "./components/RoleRoute";
 
 export default function App() {
   return <Routes>
@@ -33,17 +34,21 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/saved" element={<SavedJobsPage />} />
-        <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/applications/:id" element={<ApplicationDetailPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/interviews" element={<InterviewHubPage />} />
-        <Route path="/employer" element={<EmployerDashboard />} />
-        <Route path="/post-job" element={<PostJobPage />} />
-        <Route path="/jobs/:id/edit" element={<EditJobPage />} />
-        <Route path="/applicants" element={<ApplicantsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route element={<RoleRoute allowedRoles={["job_seeker"]} />}>
+          <Route path="/saved" element={<SavedJobsPage />} />
+          <Route path="/applications" element={<ApplicationsPage />} />
+        </Route>
+        <Route element={<RoleRoute allowedRoles={["employer"]} />}>
+          <Route path="/employer" element={<EmployerDashboard />} />
+          <Route path="/post-job" element={<PostJobPage />} />
+          <Route path="/jobs/:id/edit" element={<EditJobPage />} />
+          <Route path="/applicants" element={<ApplicantsPage />} />
+        </Route>
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
