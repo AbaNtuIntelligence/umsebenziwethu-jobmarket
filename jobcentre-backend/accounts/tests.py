@@ -72,3 +72,72 @@ class RegistrationTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         user.refresh_from_db()
         self.assertTrue(bool(user.avatar))
+
+
+class TalentDirectoryTests(APITestCase):
+    def setUp(self):
+        self.employer = User.objects.create_user(
+            email="employer@example.com",
+            username="employer",
+            role=User.Role.EMPLOYER,
+            password="StrongPass778!",
+        )
+        self.visible_user = User.objects.create_user(
+            email="visible@example.com",
+            username="visible",
+            first_name="Naledi",
+            last_name="Mokoena",
+            phone="0820000000",
+            role=User.Role.JOB_SEEKER,
+            password="StrongPass778!",
+        )
+        self.visible = JobSeekerProfile.objects.create(
+            user=self.visible_user,
+            professional_headline="Junior Data Analyst",
+            sector="Technology",
+            industry="Data services",
+            skills="Excel, SQL, data collection",
+            province="Gauteng",
+            city="Johannesburg",
+            availability="Immediately available",
+            directory_visible=True,
+            resume=SimpleUploadedFile(
+                "private-resume.pdf",
+                b"%PDF-1.4 private",
+                content_type="application/pdf",
+            ),
+        )
+        hidden_user = User.objects.create_user(
+            email="hidden@example.com",
+            username="hidden",
+            role=User.Role.JOB_SEEKER,
+            password="StrongPass778!",
+        )
+        JobSeekerProfile.objects.create(
+            user=hidden_user,
+            professional_headline="Private candidate",
+            directory_visible=False,
+        )
+
+    def test_employer_can_browse_only_opted_in_profiles(self):
+        self.client.force_authenticate(self.employer)
+        response = self.client.get(reverse("job-seeker-directory"))
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["name"], "Naledi Mokoena")
+        self.assertNotIn("email", results[0])
+        self.assertNotIn("phone", results[0])
+        self.assertNotIn("resume", results[0])
+
+    def test_job_seeker_cannot_browse_directory(self):
+        self.client.force_authenticate(self.visible_user)
+        response = self.client.get(reverse("job-seeker-directory"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_directory_can_filter_by_sector_and_search_skills(self):
+        self.client.force_authenticate(self.employer)
+        matching = self.client.get(reverse("job-seeker-directory"), {"sector": "Technology", "search": "SQL"})
+        missing = self.client.get(reverse("job-seeker-directory"), {"sector": "Hospitality"})
+        self.assertEqual(len(matching.data.get("results", matching.data)), 1)
+        self.assertEqual(len(missing.data.get("results", missing.data)), 0)

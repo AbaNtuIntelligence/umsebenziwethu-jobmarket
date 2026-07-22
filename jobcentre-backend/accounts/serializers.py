@@ -13,14 +13,17 @@ class RegisterSerializer(serializers.ModelSerializer):
     accept_terms = serializers.BooleanField(write_only=True)
     invite_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
     professional_headline = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    sector = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    industry = serializers.CharField(write_only=True, required=False, allow_blank=True)
     skills = serializers.CharField(write_only=True, required=False, allow_blank=True)
     province = serializers.CharField(write_only=True, required=False, allow_blank=True)
     city = serializers.CharField(write_only=True, required=False, allow_blank=True)
     availability = serializers.CharField(write_only=True, required=False, allow_blank=True)
     resume = serializers.FileField(write_only=True, required=False, allow_null=True)
+    directory_visible = serializers.BooleanField(write_only=True, required=False, default=False)
     class Meta:
         model = User
-        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "password", "organisation_name", "professional_headline", "skills", "province", "city", "availability", "resume", "accept_terms", "invite_code")
+        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "password", "organisation_name", "professional_headline", "sector", "industry", "skills", "province", "city", "availability", "resume", "directory_visible", "accept_terms", "invite_code")
         read_only_fields = ("id",)
     def validate(self, attrs):
         if not attrs.get("accept_terms"):
@@ -42,7 +45,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         organisation_name = validated_data.pop("organisation_name", "")
         seeker_data = {
             key: validated_data.pop(key, "")
-            for key in ("professional_headline", "skills", "province", "city", "availability")
+            for key in ("professional_headline", "sector", "industry", "skills", "province", "city", "availability", "directory_visible")
         }
         resume = validated_data.pop("resume", None)
         user = User.objects.create_user(**validated_data, terms_accepted_at=timezone.now())
@@ -116,3 +119,18 @@ class JobSeekerProfileSerializer(serializers.ModelSerializer):
         if value.size > 5 * 1024 * 1024:
             raise serializers.ValidationError("Résumé must be 5 MB or smaller.")
         return value
+
+class TalentDirectorySerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(source="user.avatar", read_only=True)
+
+    class Meta:
+        model = JobSeekerProfile
+        fields = (
+            "id", "name", "avatar", "professional_headline", "sector",
+            "industry", "skills", "province", "city", "availability", "bio",
+        )
+
+    def get_name(self, obj):
+        full_name = obj.user.get_full_name().strip()
+        return full_name or obj.user.username

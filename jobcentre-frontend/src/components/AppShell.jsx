@@ -132,6 +132,11 @@ export default function AppShell() {
                   Applicants
                 </NavLink>
 
+                <NavLink className={linkClass} to="/job-seekers">
+                  <UserRound />
+                  Job seekers
+                </NavLink>
+
                 <NavLink className={linkClass} to="/post-job">
                   <PlusCircle />
                   Post a job
@@ -311,6 +316,15 @@ export default function AppShell() {
                   >
                     <UsersRound />
                     <span>Applicants</span>
+                  </NavLink>
+
+                  <NavLink
+                    className={linkClass}
+                    to="/job-seekers"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <UserRound />
+                    <span>Job seekers</span>
                   </NavLink>
 
                   <NavLink

@@ -31,8 +31,9 @@ export default function ProfilePage() {
       const profileForm = new FormData();
       const profileFields = user.role === "employer"
         ? ["organisation_name", "registration_number", "website", "description"]
-        : ["professional_headline", "province", "city", "skills", "availability", "bio"];
+        : ["professional_headline", "sector", "industry", "province", "city", "skills", "availability", "bio"];
       profileFields.forEach((key) => profileForm.append(key, raw.get(key) || ""));
+      if (user.role === "job_seeker") profileForm.append("directory_visible", raw.has("directory_visible") ? "true" : "false");
       const resume = raw.get("resume");
       if (user.role === "job_seeker" && resume?.size) profileForm.append("resume", resume);
 
@@ -83,11 +84,14 @@ export default function ProfilePage() {
         <label className="span-2">About the organisation<textarea name="description" rows="5" defaultValue={profile.description} /></label>
       </> : <>
         <label className="span-2">Professional headline<input name="professional_headline" defaultValue={profile.professional_headline} placeholder="Junior IT Support Technician" /></label>
+        <label>Sector<input name="sector" defaultValue={profile.sector} placeholder="Technology" /></label>
+        <label>Industry<input name="industry" defaultValue={profile.industry} placeholder="IT support services" /></label>
         <label>Province<input name="province" defaultValue={profile.province} /></label>
         <label>City or town<input name="city" defaultValue={profile.city} /></label>
         <label className="span-2">Skills<input name="skills" defaultValue={profile.skills} placeholder="Technical support, driving, customer service" /></label>
         <label>Availability<input name="availability" defaultValue={profile.availability} placeholder="Immediately available" /></label>
         <label className="span-2">Professional introduction<textarea name="bio" rows="5" defaultValue={profile.bio} /></label>
+        <label className="consent span-2"><input type="checkbox" name="directory_visible" defaultChecked={profile.directory_visible} /><span>Make my professional profile discoverable to signed-in employers. Contact details and my résumé stay private.</span></label>
         {profile.resume && <a className="resume-current span-2" href={mediaUrl(profile.resume)} target="_blank" rel="noreferrer"><FileText /> View current résumé</a>}
         <label className="resume-upload span-2">
           <FileText />

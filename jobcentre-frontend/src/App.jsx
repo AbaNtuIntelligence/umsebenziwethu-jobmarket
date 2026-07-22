@@ -21,6 +21,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import InterviewHubPage from "./pages/InterviewHubPage";
 import EditJobPage from "./pages/EditJobPage";
 import RoleRoute from "./components/RoleRoute";
+import TalentDirectoryPage from "./pages/TalentDirectoryPage";
 
 export default function App() {
   return <Routes>
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/post-job" element={<PostJobPage />} />
           <Route path="/jobs/:id/edit" element={<EditJobPage />} />
           <Route path="/applicants" element={<ApplicantsPage />} />
+          <Route path="/job-seekers" element={<TalentDirectoryPage />} />
         </Route>
       </Route>
     </Route>

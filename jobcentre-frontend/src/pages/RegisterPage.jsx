@@ -45,6 +45,8 @@ export default function RegisterPage() {
       ) : (
         <>
           <label className="span-2">Professional headline<input name="professional_headline" placeholder="e.g. Junior IT Support Technician" /></label>
+          <label>Sector<input name="sector" placeholder="e.g. Technology" /></label>
+          <label>Industry<input name="industry" placeholder="e.g. IT support services" /></label>
           <label>Province<input name="province" placeholder="Gauteng" /></label>
           <label>City or town<input name="city" placeholder="Johannesburg" /></label>
           <label className="span-2">Skills<input name="skills" placeholder="Technical support, driving, customer service" /></label>
@@ -59,6 +61,7 @@ export default function RegisterPage() {
               onChange={(event) => setResumeName(event.target.files?.[0]?.name || "")}
             />
           </label>
+          <label className="consent span-2"><input type="checkbox" name="directory_visible" value="true" defaultChecked /><span>Show my professional profile in the employer Job Seekers directory. My contact details and résumé will remain private.</span></label>
         </>
       )}
 
