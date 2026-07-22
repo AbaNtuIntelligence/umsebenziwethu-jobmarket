@@ -44,6 +44,19 @@ export default function AppShell() {
         </NavLink>
 
         <div className="top-actions">
+          {user?.role === "employer" && (
+            <button
+              type="button"
+              className="icon-button mobile-menu-toggle"
+              onClick={() => setMobileMoreOpen(true)}
+              aria-label="Open employer navigation"
+              aria-expanded={mobileMoreOpen}
+              aria-controls="employer-mobile-more"
+            >
+              <Menu />
+            </button>
+          )}
+
           {user ? (
             <>
               <NavLink
@@ -273,6 +286,51 @@ export default function AppShell() {
                 </header>
 
                 <nav>
+                  <NavLink
+                    className={linkClass}
+                    to="/"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <Home />
+                    <span>Home</span>
+                  </NavLink>
+
+                  <NavLink
+                    className={linkClass}
+                    to="/employer"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <BriefcaseBusiness />
+                    <span>My jobs</span>
+                  </NavLink>
+
+                  <NavLink
+                    className={linkClass}
+                    to="/applicants"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <UsersRound />
+                    <span>Applicants</span>
+                  </NavLink>
+
+                  <NavLink
+                    className={linkClass}
+                    to="/post-job"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <PlusCircle />
+                    <span>Post a job</span>
+                  </NavLink>
+
+                  <NavLink
+                    className={linkClass}
+                    to="/interviews"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <CalendarClock />
+                    <span>Interview Hub</span>
+                  </NavLink>
+
                   <NavLink
                     className={linkClass}
                     to="/notifications"

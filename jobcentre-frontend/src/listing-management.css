@@ -14,7 +14,15 @@
   opacity: 0.65;
 }
 
+.mobile-menu-toggle {
+  display: none;
+}
+
 @media (max-width: 720px) {
+  .mobile-menu-toggle {
+    display: grid;
+  }
+
   .listing-management {
     display: grid;
     grid-template-columns: 1fr 1fr;
