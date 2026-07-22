@@ -34,6 +34,7 @@ export default function ProfilePage() {
         : ["professional_headline", "sector", "industry", "province", "city", "skills", "availability", "bio"];
       profileFields.forEach((key) => profileForm.append(key, raw.get(key) || ""));
       if (user.role === "job_seeker") profileForm.append("directory_visible", raw.has("directory_visible") ? "true" : "false");
+      if (user.role === "job_seeker") profileForm.append("directory_show_avatar", raw.has("directory_show_avatar") ? "true" : "false");
       const resume = raw.get("resume");
       if (user.role === "job_seeker" && resume?.size) profileForm.append("resume", resume);
 
@@ -92,6 +93,7 @@ export default function ProfilePage() {
         <label>Availability<input name="availability" defaultValue={profile.availability} placeholder="Immediately available" /></label>
         <label className="span-2">Professional introduction<textarea name="bio" rows="5" defaultValue={profile.bio} /></label>
         <label className="consent span-2"><input type="checkbox" name="directory_visible" defaultChecked={profile.directory_visible} /><span>Make my professional profile discoverable to signed-in employers. Contact details and my résumé stay private.</span></label>
+        <label className="consent span-2"><input type="checkbox" name="directory_show_avatar" defaultChecked={profile.directory_show_avatar} /><span>Show my profile picture in the employer Job Seekers directory. Turning this off keeps my account picture but hides it from that directory.</span></label>
         {profile.resume && <a className="resume-current span-2" href={mediaUrl(profile.resume)} target="_blank" rel="noreferrer"><FileText /> View current résumé</a>}
         <label className="resume-upload span-2">
           <FileText />

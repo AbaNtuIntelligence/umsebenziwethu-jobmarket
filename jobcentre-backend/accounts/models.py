@@ -45,4 +45,8 @@ class JobSeekerProfile(models.Model):
         default=False,
         help_text="Allow employers to discover this professional profile.",
     )
+    directory_show_avatar = models.BooleanField(
+        default=False,
+        help_text="Show the account avatar in the employer talent directory.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)

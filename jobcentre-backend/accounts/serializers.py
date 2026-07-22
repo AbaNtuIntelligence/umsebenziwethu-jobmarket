@@ -9,6 +9,7 @@ from .models import EmployerProfile, JobSeekerProfile, User
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
+    avatar = serializers.ImageField(write_only=True, required=False, allow_null=True)
     organisation_name = serializers.CharField(write_only=True, required=False)
     accept_terms = serializers.BooleanField(write_only=True)
     invite_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -21,9 +22,10 @@ class RegisterSerializer(serializers.ModelSerializer):
     availability = serializers.CharField(write_only=True, required=False, allow_blank=True)
     resume = serializers.FileField(write_only=True, required=False, allow_null=True)
     directory_visible = serializers.BooleanField(write_only=True, required=False, default=False)
+    directory_show_avatar = serializers.BooleanField(write_only=True, required=False, default=False)
     class Meta:
         model = User
-        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "password", "organisation_name", "professional_headline", "sector", "industry", "skills", "province", "city", "availability", "resume", "directory_visible", "accept_terms", "invite_code")
+        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "avatar", "password", "organisation_name", "professional_headline", "sector", "industry", "skills", "province", "city", "availability", "resume", "directory_visible", "directory_show_avatar", "accept_terms", "invite_code")
         read_only_fields = ("id",)
     def validate(self, attrs):
         if not attrs.get("accept_terms"):
@@ -38,6 +40,13 @@ class RegisterSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"resume": "Upload your résumé as a PDF file."})
             if resume.size > 5 * 1024 * 1024:
                 raise serializers.ValidationError({"resume": "Résumé must be 5 MB or smaller."})
+        avatar = attrs.get("avatar")
+        if avatar:
+            allowed = {"image/jpeg", "image/png", "image/webp"}
+            if getattr(avatar, "content_type", "") not in allowed:
+                raise serializers.ValidationError({"avatar": "Use a JPG, PNG or WebP image."})
+            if avatar.size > 3 * 1024 * 1024:
+                raise serializers.ValidationError({"avatar": "Profile image must be 3 MB or smaller."})
         return attrs
     def create(self, validated_data):
         validated_data.pop("accept_terms")
@@ -45,7 +54,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         organisation_name = validated_data.pop("organisation_name", "")
         seeker_data = {
             key: validated_data.pop(key, "")
-            for key in ("professional_headline", "sector", "industry", "skills", "province", "city", "availability", "directory_visible")
+            for key in ("professional_headline", "sector", "industry", "skills", "province", "city", "availability", "directory_visible", "directory_show_avatar")
         }
         resume = validated_data.pop("resume", None)
         user = User.objects.create_user(**validated_data, terms_accepted_at=timezone.now())
@@ -122,7 +131,7 @@ class JobSeekerProfileSerializer(serializers.ModelSerializer):
 
 class TalentDirectorySerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
-    avatar = serializers.ImageField(source="user.avatar", read_only=True)
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = JobSeekerProfile
@@ -134,3 +143,10 @@ class TalentDirectorySerializer(serializers.ModelSerializer):
     def get_name(self, obj):
         full_name = obj.user.get_full_name().strip()
         return full_name or obj.user.username
+
+    def get_avatar(self, obj):
+        if not obj.directory_show_avatar or not obj.user.avatar:
+            return None
+        request = self.context.get("request")
+        url = obj.user.avatar.url
+        return request.build_absolute_uri(url) if request else url

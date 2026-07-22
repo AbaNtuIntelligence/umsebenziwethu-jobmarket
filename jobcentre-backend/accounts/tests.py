@@ -6,6 +6,12 @@ from PIL import Image
 from .models import JobSeekerProfile, User
 
 class RegistrationTests(APITestCase):
+    @staticmethod
+    def avatar_upload(name="avatar.png"):
+        image = BytesIO()
+        Image.new("RGB", (20, 20), "navy").save(image, format="PNG")
+        return SimpleUploadedFile(name, image.getvalue(), content_type="image/png")
+
     def test_job_seeker_registration(self):
         response = self.client.post(reverse("register"), {"email": "seeker@example.com", "username": "seeker", "role": "job_seeker", "password": "StrongPass778!", "accept_terms": True})
         self.assertEqual(response.status_code, 201)
@@ -47,6 +53,45 @@ class RegistrationTests(APITestCase):
     def test_employer_requires_organisation(self):
         response = self.client.post(reverse("register"), {"email": "boss@example.com", "username": "boss", "role": "employer", "password": "StrongPass778!", "accept_terms": True})
         self.assertEqual(response.status_code, 400)
+
+    def test_both_roles_can_upload_an_avatar_during_registration(self):
+        seeker = self.client.post(reverse("register"), {
+            "email": "photo-seeker@example.com",
+            "username": "photo-seeker",
+            "role": "job_seeker",
+            "password": "StrongPass778!",
+            "accept_terms": True,
+            "avatar": self.avatar_upload("seeker.png"),
+            "directory_visible": True,
+            "directory_show_avatar": True,
+        }, format="multipart")
+        employer = self.client.post(reverse("register"), {
+            "email": "photo-employer@example.com",
+            "username": "photo-employer",
+            "role": "employer",
+            "password": "StrongPass778!",
+            "organisation_name": "Photo Employer",
+            "accept_terms": True,
+            "avatar": self.avatar_upload("employer.png"),
+        }, format="multipart")
+        self.assertEqual(seeker.status_code, 201)
+        self.assertEqual(employer.status_code, 201)
+        self.assertTrue(bool(User.objects.get(email="photo-seeker@example.com").avatar))
+        self.assertTrue(bool(User.objects.get(email="photo-employer@example.com").avatar))
+        profile = JobSeekerProfile.objects.get(user__email="photo-seeker@example.com")
+        self.assertTrue(profile.directory_show_avatar)
+
+    def test_registration_rejects_non_image_avatar(self):
+        response = self.client.post(reverse("register"), {
+            "email": "bad-avatar@example.com",
+            "username": "bad-avatar",
+            "role": "job_seeker",
+            "password": "StrongPass778!",
+            "accept_terms": True,
+            "avatar": SimpleUploadedFile("avatar.txt", b"not an image", content_type="text/plain"),
+        }, format="multipart")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("avatar", response.data["errors"])
 
     def test_registration_requires_terms(self):
         response = self.client.post(reverse("register"), {"email": "private@example.com", "username": "private", "role": "job_seeker", "password": "StrongPass778!", "accept_terms": False})
@@ -141,3 +186,14 @@ class TalentDirectoryTests(APITestCase):
         missing = self.client.get(reverse("job-seeker-directory"), {"sector": "Hospitality"})
         self.assertEqual(len(matching.data.get("results", matching.data)), 1)
         self.assertEqual(len(missing.data.get("results", missing.data)), 0)
+
+    def test_job_seeker_can_hide_avatar_without_hiding_directory_profile(self):
+        self.visible_user.avatar = RegistrationTests.avatar_upload("visible.png")
+        self.visible_user.save(update_fields=["avatar"])
+        self.visible.directory_show_avatar = False
+        self.visible.save(update_fields=["directory_show_avatar"])
+        self.client.force_authenticate(self.employer)
+        response = self.client.get(reverse("job-seeker-directory"))
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertIsNone(results[0]["avatar"])

@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { Camera, FileText } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api, { errorMessage } from "../services/api";
@@ -8,6 +8,8 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [resumeName, setResumeName] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarName, setAvatarName] = useState("");
   const navigate = useNavigate();
 
   async function submit(event) {
@@ -22,6 +24,17 @@ export default function RegisterPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function chooseAvatar(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setAvatarPreview("");
+      setAvatarName("");
+      return;
+    }
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarName(file.name);
   }
 
   return <div className="auth-card wide">
@@ -39,6 +52,18 @@ export default function RegisterPage() {
       <label>Username<input name="username" required /></label>
       <label>Email<input type="email" name="email" required /></label>
       <label>Phone number<input type="tel" name="phone" /></label>
+
+      <div className="signup-avatar span-2">
+        <div className="signup-avatar-preview">
+          {avatarPreview ? <img src={avatarPreview} alt="Selected profile preview" /> : <Camera />}
+        </div>
+        <div>
+          <b>{role === "employer" ? "Add an organisation logo or profile image" : "Add a professional profile photo"}</b>
+          <p>{role === "employer" ? "Help job seekers recognise your organisation." : "A clear, recent photo helps employers recognise your profile."} This is optional and can be changed later.</p>
+          <label className="button ghost">Choose image<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseAvatar} /></label>
+          <small>{avatarName || "JPG, PNG or WebP · maximum 3 MB"}</small>
+        </div>
+      </div>
 
       {role === "employer" ? (
         <label className="span-2">Organisation name<input name="organisation_name" required /></label>
@@ -62,6 +87,7 @@ export default function RegisterPage() {
             />
           </label>
           <label className="consent span-2"><input type="checkbox" name="directory_visible" value="true" defaultChecked /><span>Show my professional profile in the employer Job Seekers directory. My contact details and résumé will remain private.</span></label>
+          <label className="consent span-2"><input type="checkbox" name="directory_show_avatar" value="true" defaultChecked /><span>Show my profile picture to employers in the Job Seekers directory. I can switch this off later without removing my account photo.</span></label>
         </>
       )}
 
