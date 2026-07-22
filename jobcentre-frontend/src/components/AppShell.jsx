@@ -19,28 +19,10 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 import SiteFooter from "./SiteFooter";
 import UserAvatar from "./UserAvatar";
+import { JOB_CATEGORIES } from "../data/jobCategories";
 
 const linkClass = ({ isActive }) =>
   `nav-link ${isActive ? "active" : ""}`;
-
-const jobCategories = [
-  {label: "Administration & Office", query: "Administration"},
-  {label: "Agriculture & Farming", query: "Agriculture"},
-  {label: "Construction & Trades", query: "Construction"},
-  {label: "Customer Service", query: "Customer Service"},
-  {label: "Domestic & Care Work", query: "Care"},
-  {label: "Driving & Delivery", query: "Driving"},
-  {label: "Education & Training", query: "Education"},
-  {label: "Finance & Accounting", query: "Finance"},
-  {label: "Healthcare & Community", query: "Healthcare"},
-  {label: "Hospitality & Tourism", query: "Hospitality"},
-  {label: "IT & Digital", query: "IT"},
-  {label: "Manufacturing & Production", query: "Manufacturing"},
-  {label: "Retail & Sales", query: "Retail"},
-  {label: "Security Services", query: "Security"},
-  {label: "Transport & Warehousing", query: "Warehousing"},
-  {label: "Graduate & Internships", query: "Internship"},
-];
 
 export default function AppShell() {
   const { user, logout, avatarRevision } = useAuth();
@@ -210,12 +192,12 @@ export default function AppShell() {
             <h3>Browse job categories</h3>
             <p className="category-helper">Explore opportunities across growing and essential sectors.</p>
             <div className="category-links">
-            {jobCategories.map((category) => (
+            {JOB_CATEGORIES.map((category) => (
               <NavLink
-                key={category.label}
+                key={category.value}
                 to={`/?search=${encodeURIComponent(category.query)}`}
               >
-                {category.label}
+                {category.value}
               </NavLink>
             ))}
             </div>

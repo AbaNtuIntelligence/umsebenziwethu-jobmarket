@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import api, { errorMessage } from "../services/api";
 import { useAuth } from "../state/AuthContext";
+import { JOB_CATEGORIES, JOB_CATEGORY_VALUES } from "../data/jobCategories";
 
 export default function EditJobPage() {
   const { id } = useParams();
@@ -49,7 +50,7 @@ export default function EditJobPage() {
     {error && <div className="alert error">{error}</div>}
     <form className="form-grid" onSubmit={submit}>
       <label className="span-2">Job title<input name="title" defaultValue={job.title} required /></label>
-      <label>Category<input name="category" defaultValue={job.category} required /></label>
+      <label>Category<select name="category" defaultValue={job.category} required>{!JOB_CATEGORY_VALUES.includes(job.category) && <option value={job.category}>{job.category} (legacy category)</option>}{JOB_CATEGORIES.map((category) => <option value={category.value} key={category.value}>{category.value}</option>)}</select><small className="field-help">Choose the closest category so this opportunity appears in relevant searches.</small></label>
       <label>Employment type<select name="employment_type" defaultValue={job.employment_type}><option value="permanent">Permanent</option><option value="contract">Contract</option><option value="temporary">Temporary</option><option value="part_time">Part-time</option><option value="internship">Internship</option></select></label>
       <label>Province<input name="province" defaultValue={job.province} required /></label>
       <label>City or town<input name="city" defaultValue={job.city} required /></label>

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { errorMessage } from "../services/api";
 import { useAuth } from "../state/AuthContext";
+import { JOB_CATEGORIES } from "../data/jobCategories";
 
 const UPLOAD_BATCH_SIZE = 3;
 
@@ -198,11 +199,11 @@ export default function PostJobPage() {
 
         <label>
           Category
-          <input
-            name="category"
-            required
-            placeholder="Transport"
-          />
+          <select name="category" required defaultValue="">
+            <option value="" disabled>Select the best-matching category</option>
+            {JOB_CATEGORIES.map((category) => <option value={category.value} key={category.value}>{category.value}</option>)}
+          </select>
+          <small className="field-help">This determines where job seekers discover the opportunity.</small>
         </label>
 
         <label>
