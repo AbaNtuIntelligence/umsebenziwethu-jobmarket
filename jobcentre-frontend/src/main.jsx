@@ -15,6 +15,8 @@ import "./safety.css";
 import "./phone-verification.css";
 import "./phone-input.css";
 import "./employer-logo.css";
+import "./job-media-management.css";
+import "./mobile-safety-navigation.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></React.StrictMode>

@@ -5,7 +5,7 @@ import {
   Video,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api, { errorMessage } from "../services/api";
 import { useAuth } from "../state/AuthContext";
 import { JOB_CATEGORIES } from "../data/jobCategories";
@@ -29,10 +29,6 @@ export default function PostJobPage() {
         Only employer accounts can post jobs.
       </div>
     );
-  }
-
-  if (!user?.phone_verified_at) {
-    return <div className="phone-verification-required"><h2>Verify your mobile number to post jobs</h2><p>This proof-of-control check protects job seekers and creates an auditable trust signal for your account.</p><Link className="button primary" to="/verify-phone">Verify mobile number</Link></div>;
   }
 
   async function uploadMedia(jobId, selectedFiles) {

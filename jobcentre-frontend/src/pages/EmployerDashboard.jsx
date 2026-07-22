@@ -88,7 +88,7 @@ export default function EmployerDashboard() {
 
             <div className="listing-management">
               <Link className="button ghost" to={`/jobs/${job.id}/edit`}>
-                <Pencil /> Edit listing
+                <Pencil /> Edit &amp; manage media
               </Link>
               {job.status !== "closed" && (
                 <button

@@ -379,6 +379,15 @@ export default function AppShell() {
                     <MessageSquareText />
                     <span>Feedback</span>
                   </NavLink>
+
+                  <NavLink
+                    className={linkClass}
+                    to="/safety"
+                    onClick={() => setMobileMoreOpen(false)}
+                  >
+                    <ShieldCheck />
+                    <span>Safety Centre</span>
+                  </NavLink>
                 </nav>
               </section>
             </>
@@ -408,6 +417,11 @@ export default function AppShell() {
             <Heart />
             <span>Saved</span>
           </NavLink>
+
+          <NavLink className={linkClass} to="/safety">
+            <ShieldCheck />
+            <span>Safety</span>
+          </NavLink>
         </nav>
       ) : (
         <nav
@@ -422,6 +436,11 @@ export default function AppShell() {
           <NavLink className={linkClass} to="/feedback">
             <MessageSquareText />
             <span>Feedback</span>
+          </NavLink>
+
+          <NavLink className={linkClass} to="/safety">
+            <ShieldCheck />
+            <span>Safety</span>
           </NavLink>
 
           <NavLink className={linkClass} to="/login">
