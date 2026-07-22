@@ -23,6 +23,25 @@ import UserAvatar from "./UserAvatar";
 const linkClass = ({ isActive }) =>
   `nav-link ${isActive ? "active" : ""}`;
 
+const jobCategories = [
+  {label: "Administration & Office", query: "Administration"},
+  {label: "Agriculture & Farming", query: "Agriculture"},
+  {label: "Construction & Trades", query: "Construction"},
+  {label: "Customer Service", query: "Customer Service"},
+  {label: "Domestic & Care Work", query: "Care"},
+  {label: "Driving & Delivery", query: "Driving"},
+  {label: "Education & Training", query: "Education"},
+  {label: "Finance & Accounting", query: "Finance"},
+  {label: "Healthcare & Community", query: "Healthcare"},
+  {label: "Hospitality & Tourism", query: "Hospitality"},
+  {label: "IT & Digital", query: "IT"},
+  {label: "Manufacturing & Production", query: "Manufacturing"},
+  {label: "Retail & Sales", query: "Retail"},
+  {label: "Security Services", query: "Security"},
+  {label: "Transport & Warehousing", query: "Warehousing"},
+  {label: "Graduate & Internships", query: "Internship"},
+];
+
 export default function AppShell() {
   const { user, logout, avatarRevision } = useAuth();
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
@@ -188,22 +207,19 @@ export default function AppShell() {
 
         <aside className="sidebar right-sidebar">
           <section className="side-card">
-            <h3>Popular categories</h3>
-
-            {[
-              "Driving",
-              "Retail",
-              "Warehousing",
-              "Administration",
-              "Hospitality",
-            ].map((category) => (
+            <h3>Browse job categories</h3>
+            <p className="category-helper">Explore opportunities across growing and essential sectors.</p>
+            <div className="category-links">
+            {jobCategories.map((category) => (
               <NavLink
-                key={category}
-                to={`/?search=${category}`}
+                key={category.label}
+                to={`/?search=${encodeURIComponent(category.query)}`}
               >
-                {category}
+                {category.label}
               </NavLink>
             ))}
+            </div>
+            <NavLink className="all-jobs-link" to="/" end>View all opportunities →</NavLink>
           </section>
 
           <section className="side-card">
