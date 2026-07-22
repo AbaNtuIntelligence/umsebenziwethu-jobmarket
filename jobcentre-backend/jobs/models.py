@@ -450,12 +450,26 @@ class RecruitmentSessionParticipant(models.Model):
 class Notification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
     application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering = ("-created_at",)
+
+class JobInvitation(models.Model):
+    employer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_job_invitations")
+    candidate = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="job_invitations")
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="candidate_invitations")
+    message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(fields=("job", "candidate"), name="one_invitation_per_job_candidate"),
+        ]
 
 class JobReport(models.Model):
     class Reason(models.TextChoices):

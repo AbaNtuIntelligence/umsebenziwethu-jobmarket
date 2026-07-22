@@ -1,16 +1,12 @@
 from django.urls import include, path
-from rest_framework.routers import DefaultRouter, re_path
-from .views import ApplicationCVReplaceView, ApplicationDetailView, ApplicationDocumentCreateView, ApplicationDocumentDownloadView, ApplicationListCreateView, ApplicationStatusView, ApplicationWithdrawView, FeedbackCreateView, InterviewViewSet, JobLocationReportCreateView, JobMediaCreateView, JobMediaDeleteView, JobReportCreateView, JobViewSet, LocationAnalyticsView, NotificationListView, NotificationReadAllView, NotificationReadView, RecruitmentSessionViewSet, SavedJobDeleteView, SavedJobListCreateView, SubmitApplicationView
-from django.conf import settings
-from django.conf.urls.static import static
-from django.views.static import serve
+from rest_framework.routers import DefaultRouter
+from .views import ApplicationCVReplaceView, ApplicationDetailView, ApplicationDocumentCreateView, ApplicationDocumentDownloadView, ApplicationListCreateView, ApplicationStatusView, ApplicationWithdrawView, FeedbackCreateView, InterviewViewSet, JobInvitationCreateView, JobLocationReportCreateView, JobMediaCreateView, JobMediaDeleteView, JobReportCreateView, JobViewSet, LocationAnalyticsView, NotificationListView, NotificationReadAllView, NotificationReadView, RecruitmentSessionViewSet, SavedJobDeleteView, SavedJobListCreateView, SubmitApplicationView
 
 router = DefaultRouter()
 router.register("jobs", JobViewSet, basename="job")
 router.register("interviews", InterviewViewSet, basename="interview")
 router.register("recruitment-sessions", RecruitmentSessionViewSet, basename="recruitment-session")
 urlpatterns = [
-    
     path("", include(router.urls)),
     path("applications/", ApplicationListCreateView.as_view(), name="applications"),
     path("applications/submit/", SubmitApplicationView.as_view(), name="application-submit"),
@@ -27,19 +23,9 @@ urlpatterns = [
     path("notifications/", NotificationListView.as_view(), name="notifications"),
     path("notifications/read-all/", NotificationReadAllView.as_view(), name="notifications-read-all"),
     path("notifications/<int:pk>/read/", NotificationReadView.as_view(), name="notification-read"),
+    path("job-invitations/", JobInvitationCreateView.as_view(), name="job-invitation-create"),
     path("job-reports/", JobReportCreateView.as_view(), name="job-report-create"),
     path("job-location-reports/", JobLocationReportCreateView.as_view(), name="job-location-report-create"),
     path("analytics/locations/", LocationAnalyticsView.as_view(), name="location-analytics"),
     path("feedback/", FeedbackCreateView.as_view(), name="feedback-create"),
-
-
-    re_path(
-        r"^media/(?P<path>.*)$",
-        serve,
-        {"document_root": settings.MEDIA_ROOT},
-    ),
 ]
-urlpatterns += static(
-    settings.MEDIA_URL,
-    document_root=settings.MEDIA_ROOT
-)

@@ -4,6 +4,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from io import BytesIO
 from PIL import Image
 from .models import JobSeekerProfile, User
+from django.utils import timezone
+from datetime import timedelta
+from jobs.models import Job, JobInvitation, Notification
 
 class RegistrationTests(APITestCase):
     @staticmethod
@@ -163,6 +166,7 @@ class TalentDirectoryTests(APITestCase):
             professional_headline="Private candidate",
             directory_visible=False,
         )
+        self.hidden_profile = hidden_user.job_seeker_profile
 
     def test_employer_can_browse_only_opted_in_profiles(self):
         self.client.force_authenticate(self.employer)
@@ -197,3 +201,40 @@ class TalentDirectoryTests(APITestCase):
         results = response.data.get("results", response.data)
         self.assertEqual(len(results), 1)
         self.assertIsNone(results[0]["avatar"])
+
+    def test_employer_can_open_visible_profile_but_not_hidden_profile(self):
+        self.client.force_authenticate(self.employer)
+        visible = self.client.get(reverse("job-seeker-profile", kwargs={"pk": self.visible.pk}))
+        hidden = self.client.get(reverse("job-seeker-profile", kwargs={"pk": self.hidden_profile.pk}))
+        self.assertEqual(visible.status_code, 200)
+        self.assertEqual(visible.data["name"], "Naledi Mokoena")
+        self.assertEqual(hidden.status_code, 404)
+
+    def test_employer_can_invite_visible_candidate_to_own_published_job(self):
+        job = Job.objects.create(
+            employer=self.employer,
+            title="Junior Data Assistant",
+            category="Technology",
+            description="Support the data team.",
+            employment_type=Job.EmploymentType.CONTRACT,
+            province="Gauteng",
+            city="Johannesburg",
+            closing_date=timezone.localdate() + timedelta(days=14),
+            status=Job.Status.PUBLISHED,
+        )
+        self.client.force_authenticate(self.employer)
+        response = self.client.post(reverse("job-invitation-create"), {
+            "candidate_profile": self.visible.pk,
+            "job": job.pk,
+            "message": "Your SQL skills look relevant to this opportunity.",
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(JobInvitation.objects.filter(job=job, candidate=self.visible_user).exists())
+        notification = Notification.objects.get(user=self.visible_user, job=job)
+        self.assertIn("invited you to apply", notification.message)
+
+        duplicate = self.client.post(reverse("job-invitation-create"), {
+            "candidate_profile": self.visible.pk,
+            "job": job.pk,
+        })
+        self.assertEqual(duplicate.status_code, 400)

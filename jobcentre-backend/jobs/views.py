@@ -7,11 +7,11 @@ from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from accounts.models import User
+from accounts.models import JobSeekerProfile, User
 from math import asin, cos, radians, sin, sqrt
-from .models import Application, ApplicationDocument, ApplicationStatusHistory, Feedback, Interview, InterviewEvent, Job, JobLocationReport, JobMedia, JobReport, Notification, RecruitmentSession, RecruitmentSessionParticipant, SavedJob
+from .models import Application, ApplicationDocument, ApplicationStatusHistory, Feedback, Interview, InterviewEvent, Job, JobInvitation, JobLocationReport, JobMedia, JobReport, Notification, RecruitmentSession, RecruitmentSessionParticipant, SavedJob
 from .permissions import IsEmployer, IsJobOwnerOrReadOnly, IsJobSeeker
-from .serializers import ApplicationDocumentSerializer, ApplicationSerializer, ApplicationStatusSerializer, FeedbackSerializer, InterviewOutcomeSerializer, InterviewResponseSerializer, InterviewSerializer, JobLocationReportSerializer, JobMediaSerializer, JobReportSerializer, JobSerializer, NotificationSerializer, RecruitmentSessionSerializer, SavedJobSerializer, SessionInviteSerializer, SessionResponseSerializer, SubmitApplicationSerializer
+from .serializers import ApplicationDocumentSerializer, ApplicationSerializer, ApplicationStatusSerializer, FeedbackSerializer, InterviewOutcomeSerializer, InterviewResponseSerializer, InterviewSerializer, JobInvitationSerializer, JobLocationReportSerializer, JobMediaSerializer, JobReportSerializer, JobSerializer, NotificationSerializer, RecruitmentSessionSerializer, SavedJobSerializer, SessionInviteSerializer, SessionResponseSerializer, SubmitApplicationSerializer
 from .services import notify
 
 class JobViewSet(viewsets.ModelViewSet):
@@ -261,6 +261,43 @@ class NotificationReadAllView(APIView):
     def post(self, request):
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response(status=204)
+
+class JobInvitationCreateView(APIView):
+    permission_classes = [IsEmployer]
+
+    def post(self, request):
+        serializer = JobInvitationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        job = generics.get_object_or_404(
+            Job,
+            pk=serializer.validated_data["job"].pk,
+            employer=request.user,
+            status=Job.Status.PUBLISHED,
+            closing_date__gte=timezone.localdate(),
+        )
+        profile = generics.get_object_or_404(
+            JobSeekerProfile.objects.select_related("user"),
+            pk=serializer.validated_data["candidate_profile"],
+            directory_visible=True,
+            user__is_active=True,
+        )
+        if JobInvitation.objects.filter(job=job, candidate=profile.user).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"candidate_profile": "This job seeker has already been invited to this opportunity."})
+
+        invitation = JobInvitation.objects.create(
+            employer=request.user,
+            candidate=profile.user,
+            job=job,
+            message=serializer.validated_data.get("message", ""),
+        )
+        organisation = getattr(request.user, "employer_profile", None)
+        organisation_name = organisation.organisation_name if organisation else (request.user.get_full_name() or request.user.username)
+        note = f"{organisation_name} invited you to apply for {job.title}."
+        if invitation.message:
+            note += f" Message: {invitation.message}"
+        notify(profile.user, f"Invitation to apply — {job.title}", note, job=job)
+        return Response(JobInvitationSerializer(invitation).data, status=status.HTTP_201_CREATED)
 
 class JobReportCreateView(generics.CreateAPIView):
     serializer_class = JobReportSerializer

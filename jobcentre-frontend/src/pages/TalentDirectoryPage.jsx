@@ -1,5 +1,6 @@
 import { BriefcaseBusiness, MapPin, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api, { errorMessage, mediaUrl } from "../services/api";
 
 function rows(data) {
@@ -20,11 +21,13 @@ function TalentCard({ candidate }) {
 
   return <article className="talent-card">
     <header className="talent-author">
-      {candidate.avatar
-        ? <img src={mediaUrl(candidate.avatar)} alt={`${candidate.name}'s profile`} />
-        : <span className="talent-avatar-fallback">{initials}</span>}
+      <Link to={`/job-seekers/${candidate.id}`} className="talent-avatar-link">
+        {candidate.avatar
+          ? <img src={mediaUrl(candidate.avatar)} alt={`${candidate.name}'s profile`} />
+          : <span className="talent-avatar-fallback">{initials}</span>}
+      </Link>
       <div>
-        <h2>{candidate.name}</h2>
+        <h2><Link to={`/job-seekers/${candidate.id}`}>{candidate.name}</Link></h2>
         <p>{candidate.professional_headline || "Job seeker open to opportunities"}</p>
       </div>
       <span className="open-to-work"><ShieldCheck /> Open to work</span>
@@ -35,7 +38,10 @@ function TalentCard({ candidate }) {
       {(candidate.sector || candidate.industry) && <p className="talent-sector"><BriefcaseBusiness />{[candidate.sector, candidate.industry].filter(Boolean).join(" · ")}</p>}
       {candidate.bio && <p className="talent-bio">{candidate.bio}</p>}
       {skills.length > 0 && <div className="talent-skills">{skills.map((skill) => <span key={skill}>{skill}</span>)}</div>}
-      {candidate.availability && <footer><b>Availability</b><span>{candidate.availability}</span></footer>}
+      <footer className="talent-card-footer">
+        {candidate.availability ? <span><b>Availability</b> {candidate.availability}</span> : <span />}
+        <Link className="button primary" to={`/job-seekers/${candidate.id}`}>View seeker profile</Link>
+      </footer>
     </div>
   </article>;
 }

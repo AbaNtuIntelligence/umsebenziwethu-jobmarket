@@ -2,7 +2,7 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework import serializers
 from urllib.parse import urlencode
-from .models import Application, ApplicationDocument, ApplicationStatusHistory, Feedback, Interview, InterviewEvent, Job, JobLocationReport, JobMedia, JobReport, Notification, RecruitmentSession, RecruitmentSessionParticipant, SavedJob
+from .models import Application, ApplicationDocument, ApplicationStatusHistory, Feedback, Interview, InterviewEvent, Job, JobInvitation, JobLocationReport, JobMedia, JobReport, Notification, RecruitmentSession, RecruitmentSessionParticipant, SavedJob
 from django.urls import reverse
 
 ALLOWED_JOB_MEDIA = {
@@ -210,8 +210,17 @@ class NotificationSerializer(serializers.ModelSerializer):
     application_reference = serializers.CharField(source="application.reference", read_only=True)
     class Meta:
         model = Notification
-        fields = ("id", "application", "application_reference", "title", "message", "is_read", "created_at")
+        fields = ("id", "application", "job", "application_reference", "title", "message", "is_read", "created_at")
         read_only_fields = fields
+
+class JobInvitationSerializer(serializers.ModelSerializer):
+    candidate_profile = serializers.IntegerField(write_only=True)
+    message = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+
+    class Meta:
+        model = JobInvitation
+        fields = ("id", "job", "candidate_profile", "message", "created_at")
+        read_only_fields = ("id", "created_at")
 
 class SavedJobSerializer(serializers.ModelSerializer):
     job_detail = JobSerializer(source="job", read_only=True)

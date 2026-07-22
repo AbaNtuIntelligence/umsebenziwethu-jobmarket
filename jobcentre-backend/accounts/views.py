@@ -77,6 +77,17 @@ class TalentDirectoryView(generics.ListAPIView):
             queryset = queryset.filter(province__iexact=province)
         return queryset
 
+class TalentProfileView(generics.RetrieveAPIView):
+    serializer_class = TalentDirectorySerializer
+
+    def get_queryset(self):
+        if self.request.user.role != User.Role.EMPLOYER:
+            raise PermissionDenied("Only employer accounts can view job-seeker profiles.")
+        return JobSeekerProfile.objects.filter(
+            directory_visible=True,
+            user__is_active=True,
+        ).select_related("user")
+
 class AccountDeleteView(APIView):
     def post(self, request):
         serializer = AccountDeleteSerializer(data=request.data, context={"request": request})
