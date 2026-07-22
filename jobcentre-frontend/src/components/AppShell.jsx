@@ -10,6 +10,7 @@ import {
   MessageSquareText,
   PlusCircle,
   Settings,
+  ShieldCheck,
   UserRound,
   UsersRound,
   X,
@@ -20,6 +21,7 @@ import { useAuth } from "../state/AuthContext";
 import SiteFooter from "./SiteFooter";
 import UserAvatar from "./UserAvatar";
 import { JOB_CATEGORIES } from "../data/jobCategories";
+import SafetyNotice from "./SafetyNotice";
 
 const linkClass = ({ isActive }) =>
   `nav-link ${isActive ? "active" : ""}`;
@@ -173,14 +175,13 @@ export default function AppShell() {
               <MessageSquareText />
               Feedback
             </NavLink>
+            <NavLink className={linkClass} to="/safety">
+              <ShieldCheck />
+              Safety Centre
+            </NavLink>
           </nav>
 
-          <div className="safety-note">
-            <b>Stay safe</b>
-            <p>
-              A legitimate employer should never charge you to apply.
-            </p>
-          </div>
+          <SafetyNotice variant="compact" />
         </aside>
 
         <main className="main-content">

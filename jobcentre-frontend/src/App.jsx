@@ -23,6 +23,7 @@ import EditJobPage from "./pages/EditJobPage";
 import RoleRoute from "./components/RoleRoute";
 import TalentDirectoryPage from "./pages/TalentDirectoryPage";
 import TalentProfilePage from "./pages/TalentProfilePage";
+import SafetyCentrePage from "./pages/SafetyCentrePage";
 
 export default function App() {
   return <Routes>
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/safety" element={<SafetyCentrePage />} />
       <Route path="/feedback" element={<FeedbackPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />

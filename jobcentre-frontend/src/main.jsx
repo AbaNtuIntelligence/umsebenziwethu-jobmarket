@@ -11,6 +11,7 @@ import "./avatar.css";
 import "./interview.css";
 import "./listing-management.css";
 import "./talent-directory.css";
+import "./safety.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></React.StrictMode>

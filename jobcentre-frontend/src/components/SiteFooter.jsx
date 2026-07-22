@@ -20,6 +20,7 @@ export default function SiteFooter() {
         <nav className="footer-links" aria-label="Footer navigation">
           <Link to="/">Opportunities</Link>
           <Link to="/privacy">Privacy &amp; terms</Link>
+          <Link to="/safety">Safety Centre</Link>
           <Link to="/feedback">Feedback</Link>
         </nav>
 
