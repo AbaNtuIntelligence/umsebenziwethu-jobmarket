@@ -12,6 +12,8 @@ import "./interview.css";
 import "./listing-management.css";
 import "./talent-directory.css";
 import "./safety.css";
+import "./phone-verification.css";
+import "./phone-input.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></React.StrictMode>

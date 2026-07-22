@@ -3,7 +3,7 @@ from django.db import transaction
 from django.http import FileResponse, Http404
 from django.utils import timezone
 from rest_framework import generics, permissions, status, viewsets
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -35,6 +35,8 @@ class JobViewSet(viewsets.ModelViewSet):
             return [IsEmployer()]
         return [IsEmployer(), IsJobOwnerOrReadOnly()]
     def perform_create(self, serializer):
+        if not self.request.user.phone_verified_at:
+            raise ValidationError({"phone_verification": "Verify your mobile number before posting a job."})
         has_location = serializer.validated_data.get("latitude") is not None or serializer.validated_data.get("public_location")
         serializer.save(
             employer=self.request.user,
@@ -116,6 +118,8 @@ class ApplicationListCreateView(generics.ListCreateAPIView):
             return Application.objects.filter(job__employer=user).select_related("job", "applicant")
         return Application.objects.filter(applicant=user).select_related("job", "applicant")
     def perform_create(self, serializer):
+        if not self.request.user.phone_verified_at:
+            raise ValidationError({"phone_verification": "Verify your mobile number before applying for a job."})
         job = serializer.validated_data["job"]
         from rest_framework.exceptions import ValidationError
         if job.status != Job.Status.PUBLISHED or job.is_expired:
@@ -180,6 +184,8 @@ class SubmitApplicationView(APIView):
     permission_classes = [IsJobSeeker]
     @transaction.atomic
     def post(self, request):
+        if not request.user.phone_verified_at:
+            raise ValidationError({"phone_verification": "Verify your mobile number before applying for a job."})
         serializer = SubmitApplicationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         job = serializer.validated_data["job"]

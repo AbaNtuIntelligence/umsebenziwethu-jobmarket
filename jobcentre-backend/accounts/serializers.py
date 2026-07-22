@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 from .models import EmployerProfile, JobSeekerProfile, User
+from .phone_otp import normalize_phone
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -34,6 +35,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"invite_code": "A valid pilot invitation code is required."})
         if attrs.get("role") == User.Role.EMPLOYER and not attrs.get("organisation_name"):
             raise serializers.ValidationError({"organisation_name": "Required for employers."})
+        if not attrs.get("phone"):
+            raise serializers.ValidationError({"phone": "A mobile number is required for account safety."})
+        try:
+            attrs["phone"] = normalize_phone(attrs["phone"])
+        except Exception as error:
+            raise serializers.ValidationError({"phone": error.messages if hasattr(error, "messages") else str(error)})
         resume = attrs.get("resume")
         if resume:
             if getattr(resume, "content_type", "") != "application/pdf":
@@ -68,8 +75,18 @@ class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = User
-        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "avatar", "email_verified", "terms_accepted_at", "email_notifications", "sms_notifications", "whatsapp_notifications", "date_joined")
-        read_only_fields = ("id", "email", "role", "email_verified", "terms_accepted_at", "date_joined")
+        fields = ("id", "email", "username", "first_name", "last_name", "phone", "phone_verified_at", "role", "avatar", "email_verified", "terms_accepted_at", "email_notifications", "sms_notifications", "whatsapp_notifications", "date_joined")
+        read_only_fields = ("id", "email", "phone_verified_at", "role", "email_verified", "terms_accepted_at", "date_joined")
+    def validate_phone(self, value):
+        try:
+            return normalize_phone(value)
+        except Exception as error:
+            raise serializers.ValidationError(error.messages if hasattr(error, "messages") else str(error))
+    def update(self, instance, validated_data):
+        new_phone = validated_data.get("phone")
+        if new_phone and new_phone != instance.phone:
+            instance.phone_verified_at = None
+        return super().update(instance, validated_data)
     def validate_avatar(self, value):
         if value is None:
             return value
@@ -92,6 +109,10 @@ class AccountDeleteSerializer(serializers.Serializer):
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+
+class PhoneOTPVerifySerializer(serializers.Serializer):
+    code = serializers.RegexField(r"^\d{6}$", error_messages={"invalid": "Enter the six-digit code."})
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uid = serializers.CharField()

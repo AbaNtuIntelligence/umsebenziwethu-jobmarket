@@ -28,6 +28,7 @@ A privacy-conscious Django REST API for a South African jobs marketplace. Employ
 - In-app notifications and transactional email hooks
 - Protected CV downloads, CV replacement and withdrawal
 - Optional validated user avatars with automatic file cleanup
+- Provider-independent mobile OTP verification with hashed, expiring, single-use codes
 
 ## Start on Windows (Git Bash)
 
@@ -59,6 +60,8 @@ Open:
 | POST | `/api/auth/login/` | Public |
 | POST | `/api/auth/token/refresh/` | Public |
 | GET/PATCH | `/api/auth/me/` | Signed in |
+| POST | `/api/auth/phone-otp/send/` | Signed in |
+| POST | `/api/auth/phone-otp/verify/` | Signed in |
 | GET/PATCH | `/api/auth/profile/` | Signed in |
 | GET | `/api/jobs/` | Public |
 | GET | `/api/jobs/{id}/` | Public |
@@ -93,13 +96,13 @@ Search example: `/api/jobs/?search=driver&province=Gauteng&urgent=true&ordering=
 Job seeker:
 
 ```json
-{"email":"seeker@example.com","username":"seeker","role":"job_seeker","password":"StrongPass778!","accept_terms":true}
+{"email":"seeker@example.com","username":"seeker","phone":"0821234567","role":"job_seeker","password":"StrongPass778!","accept_terms":true}
 ```
 
 Employer:
 
 ```json
-{"email":"hr@example.com","username":"companyhr","role":"employer","organisation_name":"Example Logistics","password":"StrongPass778!","accept_terms":true}
+{"email":"hr@example.com","username":"companyhr","phone":"0821234567","role":"employer","organisation_name":"Example Logistics","password":"StrongPass778!","accept_terms":true}
 ```
 
 Login uses `email` and `password`. Send the returned access token as `Authorization: Bearer YOUR_TOKEN`.
@@ -121,6 +124,12 @@ Set `DEBUG=False`, a long random `SECRET_KEY`, the public domain in `ALLOWED_HOS
 For a private pilot, also set `PILOT_INVITE_CODE` to a strong code shared only with invited participants and set `FRONTEND_URL` to the deployed frontend origin. Configure a real SMTP email backend before testing password reset outside localhost.
 
 `render.yaml` is included as a deployment starting point. Do not deploy applicant documents to ephemeral local storage. Configure private persistent/object storage, signed access, malware scanning and retention rules first.
+
+## Mobile OTP provider
+
+OTP security and delivery are separated. Django creates a six-digit code, stores only its password hash, limits attempts and resends, expires it, and marks it single-use. The configured provider receives `phone`, `code` and `expires_minutes`, sends the SMS, and returns an optional `{"reference": "provider-message-id"}`.
+
+Local development uses `accounts.phone_otp.ConsoleOTPProvider`, which writes the code to the backend console. It refuses to send when `DEBUG=False`. Before enabling verification on Render, set `PHONE_OTP_PROVIDER` to the dotted class path of an SMS adapter that follows this contract. Never expose the OTP in an API response or provider logs.
 
 ## Privacy baseline
 

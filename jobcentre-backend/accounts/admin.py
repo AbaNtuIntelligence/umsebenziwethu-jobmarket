@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import EmployerProfile, JobSeekerProfile, User
+from .models import EmployerProfile, JobSeekerProfile, PhoneOTPChallenge, User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (("Job Centre", {"fields": ("role", "phone", "avatar", "email_verified", "terms_accepted_at", "email_notifications", "sms_notifications", "whatsapp_notifications")}),)
+    fieldsets = UserAdmin.fieldsets + (("Job Centre", {"fields": ("role", "phone", "phone_verified_at", "avatar", "email_verified", "terms_accepted_at", "email_notifications", "sms_notifications", "whatsapp_notifications")}),)
     add_fieldsets = UserAdmin.add_fieldsets + (("Job Centre", {"fields": ("email", "role", "phone")}),)
     list_display = ("email", "username", "role", "is_active", "date_joined")
 
@@ -22,3 +22,10 @@ class EmployerProfileAdmin(admin.ModelAdmin):
         queryset.update(is_verified=False)
 
 admin.site.register(JobSeekerProfile)
+
+@admin.register(PhoneOTPChallenge)
+class PhoneOTPChallengeAdmin(admin.ModelAdmin):
+    list_display = ("user", "phone", "delivery_status", "attempts", "expires_at", "consumed_at", "created_at")
+    readonly_fields = ("user", "phone", "code_hash", "delivery_status", "provider_reference", "attempts", "max_attempts", "expires_at", "consumed_at", "created_at")
+    def has_add_permission(self, request):
+        return False

@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from io import BytesIO
 from PIL import Image
-from .models import JobSeekerProfile, User
+from .models import JobSeekerProfile, PhoneOTPChallenge, User
 from django.utils import timezone
 from datetime import timedelta
 from jobs.models import Job, JobInvitation, Notification
@@ -20,7 +20,7 @@ class RegistrationTests(APITestCase):
         return SimpleUploadedFile(name, image.getvalue(), content_type="image/png")
 
     def test_job_seeker_registration(self):
-        response = self.client.post(reverse("register"), {"email": "seeker@example.com", "username": "seeker", "role": "job_seeker", "password": "StrongPass778!", "accept_terms": True})
+        response = self.client.post(reverse("register"), {"email": "seeker@example.com", "username": "seeker", "phone": "0821234567", "role": "job_seeker", "password": "StrongPass778!", "accept_terms": True})
         self.assertEqual(response.status_code, 201)
 
     def test_job_seeker_can_register_with_skills_and_resume(self):
@@ -29,6 +29,7 @@ class RegistrationTests(APITestCase):
             "email": "skilled@example.com",
             "username": "skilled",
             "role": "job_seeker",
+            "phone": "0821234567",
             "password": "StrongPass778!",
             "accept_terms": True,
             "professional_headline": "Junior IT Support Technician",
@@ -50,6 +51,7 @@ class RegistrationTests(APITestCase):
             "email": "bad-resume@example.com",
             "username": "bad-resume",
             "role": "job_seeker",
+            "phone": "0821234567",
             "password": "StrongPass778!",
             "accept_terms": True,
             "resume": resume,
@@ -58,7 +60,7 @@ class RegistrationTests(APITestCase):
         self.assertIn("resume", response.data["errors"])
 
     def test_employer_requires_organisation(self):
-        response = self.client.post(reverse("register"), {"email": "boss@example.com", "username": "boss", "role": "employer", "password": "StrongPass778!", "accept_terms": True})
+        response = self.client.post(reverse("register"), {"email": "boss@example.com", "username": "boss", "phone": "0821234567", "role": "employer", "password": "StrongPass778!", "accept_terms": True})
         self.assertEqual(response.status_code, 400)
 
     def test_both_roles_can_upload_an_avatar_during_registration(self):
@@ -66,6 +68,7 @@ class RegistrationTests(APITestCase):
             "email": "photo-seeker@example.com",
             "username": "photo-seeker",
             "role": "job_seeker",
+            "phone": "0821234567",
             "password": "StrongPass778!",
             "accept_terms": True,
             "avatar": self.avatar_upload("seeker.png"),
@@ -76,6 +79,7 @@ class RegistrationTests(APITestCase):
             "email": "photo-employer@example.com",
             "username": "photo-employer",
             "role": "employer",
+            "phone": "0831234567",
             "password": "StrongPass778!",
             "organisation_name": "Photo Employer",
             "accept_terms": True,
@@ -93,6 +97,7 @@ class RegistrationTests(APITestCase):
             "email": "bad-avatar@example.com",
             "username": "bad-avatar",
             "role": "job_seeker",
+            "phone": "0821234567",
             "password": "StrongPass778!",
             "accept_terms": True,
             "avatar": SimpleUploadedFile("avatar.txt", b"not an image", content_type="text/plain"),
@@ -101,7 +106,7 @@ class RegistrationTests(APITestCase):
         self.assertIn("avatar", response.data["errors"])
 
     def test_registration_requires_terms(self):
-        response = self.client.post(reverse("register"), {"email": "private@example.com", "username": "private", "role": "job_seeker", "password": "StrongPass778!", "accept_terms": False})
+        response = self.client.post(reverse("register"), {"email": "private@example.com", "username": "private", "phone": "0821234567", "role": "job_seeker", "password": "StrongPass778!", "accept_terms": False})
         self.assertEqual(response.status_code, 400)
 
     def test_account_delete_requires_password_and_confirmation(self):

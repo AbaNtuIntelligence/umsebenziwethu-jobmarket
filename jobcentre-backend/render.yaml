@@ -22,6 +22,8 @@ services:
         sync: false
       - key: PILOT_INVITE_CODE
         sync: false
+      - key: PHONE_OTP_PROVIDER
+        sync: false
       - key: MEDIA_ROOT
         value: /var/data/media
     disk:

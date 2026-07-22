@@ -48,6 +48,7 @@ class ApplicationDocumentSerializer(serializers.ModelSerializer):
 class JobSerializer(serializers.ModelSerializer):
     organisation_name = serializers.CharField(source="employer.employer_profile.organisation_name", read_only=True)
     employer_verified = serializers.BooleanField(source="employer.employer_profile.is_verified", read_only=True)
+    employer_phone_verified = serializers.SerializerMethodField()
     is_expired = serializers.BooleanField(read_only=True)
     media = JobMediaSerializer(many=True, read_only=True)
     employer_avatar = serializers.SerializerMethodField()
@@ -75,6 +76,8 @@ class JobSerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         return request.build_absolute_uri(obj.employer.avatar.url) if request else obj.employer.avatar.url
+    def get_employer_phone_verified(self, obj):
+        return bool(obj.employer.phone_verified_at)
     def get_display_location(self, obj):
         if obj.address_visibility == Job.AddressVisibility.HIDDEN:
             return "Location shared by the employer"

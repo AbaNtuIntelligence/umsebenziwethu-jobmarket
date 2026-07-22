@@ -84,6 +84,8 @@ REST_FRAMEWORK = {
         "password_reset": throttle_rate("THROTTLE_PASSWORD_RESET", "5/hour"),
         "talent_directory": throttle_rate("THROTTLE_TALENT_DIRECTORY", "60/min"),
         "job_invitation": throttle_rate("THROTTLE_JOB_INVITATION", "20/hour"),
+        "phone_otp_send": throttle_rate("THROTTLE_PHONE_OTP_SEND", "5/hour"),
+        "phone_otp_verify": throttle_rate("THROTTLE_PHONE_OTP_VERIFY", "20/hour"),
     },
 }
 SIMPLE_JWT = {
@@ -107,6 +109,10 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Job Centre <noreply@localhost>")
 PILOT_INVITE_CODE = os.getenv("PILOT_INVITE_CODE", "")
+PHONE_OTP_PROVIDER = os.getenv("PHONE_OTP_PROVIDER", "accounts.phone_otp.ConsoleOTPProvider")
+PHONE_OTP_EXPIRY_MINUTES = int(os.getenv("PHONE_OTP_EXPIRY_MINUTES", "10"))
+PHONE_OTP_MAX_ATTEMPTS = int(os.getenv("PHONE_OTP_MAX_ATTEMPTS", "5"))
+PHONE_OTP_RESEND_SECONDS = int(os.getenv("PHONE_OTP_RESEND_SECONDS", "60"))
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = "Lax"

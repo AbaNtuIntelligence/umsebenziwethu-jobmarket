@@ -12,7 +12,8 @@ from .models import EmployerProfile, JobSeekerProfile, User
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import AccountDeleteSerializer, EmployerProfileSerializer, JobSeekerProfileSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, RegisterSerializer, TalentDirectorySerializer, UserSerializer
+from .serializers import AccountDeleteSerializer, EmployerProfileSerializer, JobSeekerProfileSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, PhoneOTPVerifySerializer, RegisterSerializer, TalentDirectorySerializer, UserSerializer
+from .phone_otp import send_challenge, verify_challenge
 
 class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
@@ -48,6 +49,32 @@ class MeView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class PhoneOTPSendView(APIView):
+    throttle_scope = "phone_otp_send"
+    def post(self, request):
+        if request.user.phone_verified_at:
+            return Response({"detail": "Phone number is already verified.", "phone_verified": True})
+        if not request.user.phone:
+            raise ValidationError({"phone": "Add a mobile number to your profile first."})
+        try:
+            challenge = send_challenge(request.user)
+        except Exception as error:
+            raise ValidationError({"detail": error.messages if hasattr(error, "messages") else str(error)})
+        return Response({"detail": "Verification code sent.", "expires_at": challenge.expires_at, "phone": challenge.phone})
+
+
+class PhoneOTPVerifyView(APIView):
+    throttle_scope = "phone_otp_verify"
+    def post(self, request):
+        serializer = PhoneOTPVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = verify_challenge(request.user, serializer.validated_data["code"])
+        except Exception as error:
+            raise ValidationError({"code": error.messages if hasattr(error, "messages") else str(error)})
+        return Response({"detail": "Phone number verified successfully.", "user": UserSerializer(user).data})
 
 class ProfileView(APIView):
     def get_object_and_serializer(self, request):

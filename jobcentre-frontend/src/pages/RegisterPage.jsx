@@ -2,6 +2,7 @@ import { Camera, FileText } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api, { errorMessage } from "../services/api";
+import PhoneInput from "../components/PhoneInput";
 
 export default function RegisterPage() {
   const [role, setRole] = useState("job_seeker");
@@ -51,7 +52,7 @@ export default function RegisterPage() {
       <label>Last name<input name="last_name" required /></label>
       <label>Username<input name="username" required /></label>
       <label>Email<input type="email" name="email" required /></label>
-      <label>Phone number<input type="tel" name="phone" /></label>
+      <PhoneInput />
 
       <div className="signup-avatar span-2">
         <div className="signup-avatar-preview">

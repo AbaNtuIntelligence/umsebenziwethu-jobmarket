@@ -24,6 +24,7 @@ import RoleRoute from "./components/RoleRoute";
 import TalentDirectoryPage from "./pages/TalentDirectoryPage";
 import TalentProfilePage from "./pages/TalentProfilePage";
 import SafetyCentrePage from "./pages/SafetyCentrePage";
+import VerifyPhonePage from "./pages/VerifyPhonePage";
 
 export default function App() {
   return <Routes>
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/interviews" element={<InterviewHubPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/verify-phone" element={<VerifyPhonePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route element={<RoleRoute allowedRoles={["job_seeker"]} />}>
           <Route path="/saved" element={<SavedJobsPage />} />

@@ -2,6 +2,7 @@ import { Camera, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { errorMessage, mediaUrl } from "../services/api";
 import { useAuth } from "../state/AuthContext";
+import PhoneInput from "../components/PhoneInput";
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -76,7 +77,7 @@ export default function ProfilePage() {
       </div>
       <label>First name<input name="first_name" defaultValue={user.first_name} /></label>
       <label>Last name<input name="last_name" defaultValue={user.last_name} /></label>
-      <label>Phone<input name="phone" defaultValue={user.phone} /></label>
+      <PhoneInput defaultValue={user.phone} />
 
       {employer ? <>
         <label className="span-2">Organisation name<input name="organisation_name" defaultValue={profile.organisation_name} required /></label>
