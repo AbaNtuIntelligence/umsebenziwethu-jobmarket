@@ -130,6 +130,32 @@ class RegistrationTests(APITestCase):
         user.refresh_from_db()
         self.assertTrue(bool(user.avatar))
 
+    def test_employer_can_remove_company_logo(self):
+        employer = User.objects.create_user(
+            email="logo-employer@example.com",
+            username="logo-employer",
+            role=User.Role.EMPLOYER,
+            password="StrongPass778!",
+            avatar=self.avatar_upload("company-logo.png"),
+        )
+        self.client.force_authenticate(employer)
+        response = self.client.delete(reverse("employer-logo-delete"))
+        self.assertEqual(response.status_code, 200)
+        employer.refresh_from_db()
+        self.assertFalse(bool(employer.avatar))
+        self.assertIsNone(response.data["avatar"])
+
+    def test_job_seeker_cannot_use_employer_logo_delete(self):
+        seeker = User.objects.create_user(
+            email="logo-seeker@example.com",
+            username="logo-seeker",
+            role=User.Role.JOB_SEEKER,
+            password="StrongPass778!",
+        )
+        self.client.force_authenticate(seeker)
+        response = self.client.delete(reverse("employer-logo-delete"))
+        self.assertEqual(response.status_code, 403)
+
 
 class TalentDirectoryTests(APITestCase):
     def setUp(self):

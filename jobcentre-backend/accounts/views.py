@@ -51,6 +51,16 @@ class MeView(APIView):
         return Response(serializer.data)
 
 
+class EmployerLogoDeleteView(APIView):
+    def delete(self, request):
+        if request.user.role != User.Role.EMPLOYER:
+            raise PermissionDenied("Only employer accounts have a company logo.")
+        if request.user.avatar:
+            request.user.avatar = None
+            request.user.save(update_fields=("avatar",))
+        return Response(UserSerializer(request.user, context={"request": request}).data)
+
+
 class PhoneOTPSendView(APIView):
     throttle_scope = "phone_otp_send"
     def post(self, request):

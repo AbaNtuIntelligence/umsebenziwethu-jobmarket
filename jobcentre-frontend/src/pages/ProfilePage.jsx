@@ -1,4 +1,4 @@
-import { Camera, FileText } from "lucide-react";
+import { Camera, FileText, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { errorMessage, mediaUrl } from "../services/api";
 import { useAuth } from "../state/AuthContext";
@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const [preview, setPreview] = useState(mediaUrl(user.avatar));
   const [resumeName, setResumeName] = useState("");
+  const [removingLogo, setRemovingLogo] = useState(false);
 
   useEffect(() => {
     api.get("/auth/profile/")
@@ -56,6 +57,22 @@ export default function ProfilePage() {
     if (file) setPreview(URL.createObjectURL(file));
   }
 
+  async function removeLogo() {
+    if (!window.confirm("Remove the company logo? Your organisation initials will be shown instead.")) return;
+    setRemovingLogo(true);
+    setMessage("");
+    try {
+      const { data } = await api.delete("/auth/employer-logo/");
+      updateUser(data, { avatarChanged: true });
+      setPreview("");
+      setMessage("Company logo removed successfully.");
+    } catch (requestError) {
+      setMessage(errorMessage(requestError));
+    } finally {
+      setRemovingLogo(false);
+    }
+  }
+
   if (!profile) return <div className="card empty">{message || "Loading profile…"}</div>;
   const employer = user.role === "employer";
   const initials = `${user.first_name?.[0] || user.username?.[0] || "U"}${user.last_name?.[0] || ""}`.toUpperCase();
@@ -72,7 +89,10 @@ export default function ProfilePage() {
     <form className="form-grid" onSubmit={submit}>
       <div className="avatar-editor span-2">
         {preview ? <img src={preview} alt="Profile preview" /> : <span>{initials}</span>}
-        <label><Camera />Choose {employer ? "organisation image" : "profile picture"}<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseAvatar} /></label>
+        <div className="avatar-editor-actions">
+          <label><Camera />{user.avatar ? "Replace" : "Choose"} {employer ? "company logo" : "profile picture"}<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseAvatar} /></label>
+          {employer && user.avatar && <button type="button" className="button avatar-remove" disabled={removingLogo} onClick={removeLogo}><Trash2 />{removingLogo ? "Removing…" : "Remove logo"}</button>}
+        </div>
         <small>Optional JPG, PNG or WebP. Maximum 3 MB.</small>
       </div>
       <label>First name<input name="first_name" defaultValue={user.first_name} /></label>
