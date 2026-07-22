@@ -10,11 +10,35 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from .models import EmployerProfile, JobSeekerProfile, User
 from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import AccountDeleteSerializer, EmployerProfileSerializer, JobSeekerProfileSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, RegisterSerializer, TalentDirectorySerializer, UserSerializer
 
 class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
+    throttle_scope = "registration"
+
+class LoginView(TokenObtainPairView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "login"
+
+class RefreshTokenView(TokenRefreshView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "token_refresh"
+
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "token_refresh"
+
+    def post(self, request):
+        refresh = request.data.get("refresh")
+        if refresh:
+            try:
+                RefreshToken(refresh).blacklist()
+            except Exception:
+                pass
+        return Response(status=204)
 
 class MeView(APIView):
     def get(self, request):
@@ -44,6 +68,7 @@ class ProfileView(APIView):
 
 class TalentDirectoryView(generics.ListAPIView):
     serializer_class = TalentDirectorySerializer
+    throttle_scope = "talent_directory"
 
     def get_queryset(self):
         if self.request.user.role != User.Role.EMPLOYER:
@@ -79,6 +104,7 @@ class TalentDirectoryView(generics.ListAPIView):
 
 class TalentProfileView(generics.RetrieveAPIView):
     serializer_class = TalentDirectorySerializer
+    throttle_scope = "talent_directory"
 
     def get_queryset(self):
         if self.request.user.role != User.Role.EMPLOYER:
@@ -97,6 +123,7 @@ class AccountDeleteView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "password_reset"
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -7,6 +7,10 @@ from .models import JobSeekerProfile, User
 from django.utils import timezone
 from datetime import timedelta
 from jobs.models import Job, JobInvitation, Notification
+from django.core.cache import cache
+from django.test import override_settings
+from django.conf import settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class RegistrationTests(APITestCase):
     @staticmethod
@@ -238,3 +242,47 @@ class TalentDirectoryTests(APITestCase):
             "job": job.pk,
         })
         self.assertEqual(duplicate.status_code, 400)
+
+
+class HardeningTests(APITestCase):
+    def test_readiness_checks_database_connection(self):
+        response = self.client.get("/api/ready/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["database"], "ok")
+
+    def test_invalid_token_returns_readable_error_shape(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer definitely-not-a-jwt")
+        response = self.client.get(reverse("me"))
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(response.data["success"])
+        self.assertIsInstance(response.data["detail"], str)
+        self.assertNotEqual(response.data["detail"], "[object Object]")
+
+    def test_logout_blacklists_refresh_token(self):
+        user = User.objects.create_user(
+            email="logout@example.com",
+            username="logout",
+            role=User.Role.JOB_SEEKER,
+            password="StrongPass778!",
+        )
+        refresh = str(RefreshToken.for_user(user))
+        logout = self.client.post(reverse("logout"), {"refresh": refresh})
+        rejected = self.client.post(reverse("token-refresh"), {"refresh": refresh})
+        self.assertEqual(logout.status_code, 204)
+        self.assertEqual(rejected.status_code, 401)
+
+    @override_settings(REST_FRAMEWORK={
+        **settings.REST_FRAMEWORK,
+        "DEFAULT_THROTTLE_RATES": {
+            **settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"],
+            "anon": "100/min",
+            "login": "2/min",
+        },
+    })
+    def test_login_is_rate_limited(self):
+        cache.clear()
+        payload = {"email": "nobody@example.com", "password": "WrongPass778!"}
+        self.client.post(reverse("login"), payload)
+        self.client.post(reverse("login"), payload)
+        limited = self.client.post(reverse("login"), payload)
+        self.assertEqual(limited.status_code, 429)

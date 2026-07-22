@@ -264,7 +264,9 @@ class NotificationReadAllView(APIView):
 
 class JobInvitationCreateView(APIView):
     permission_classes = [IsEmployer]
+    throttle_scope = "job_invitation"
 
+    @transaction.atomic
     def post(self, request):
         serializer = JobInvitationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -281,16 +283,15 @@ class JobInvitationCreateView(APIView):
             directory_visible=True,
             user__is_active=True,
         )
-        if JobInvitation.objects.filter(job=job, candidate=profile.user).exists():
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError({"candidate_profile": "This job seeker has already been invited to this opportunity."})
-
-        invitation = JobInvitation.objects.create(
+        invitation, created = JobInvitation.objects.get_or_create(
             employer=request.user,
             candidate=profile.user,
             job=job,
-            message=serializer.validated_data.get("message", ""),
+            defaults={"message": serializer.validated_data.get("message", "")},
         )
+        if not created:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"candidate_profile": "This job seeker has already been invited to this opportunity."})
         organisation = getattr(request.user, "employer_profile", None)
         organisation_name = organisation.organisation_name if organisation else (request.user.get_full_name() or request.user.username)
         note = f"{organisation_name} invited you to apply for {job.title}."
