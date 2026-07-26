@@ -181,7 +181,9 @@ export default function AppShell() {
             </NavLink>
           </nav>
 
-          <SafetyNotice variant="compact" />
+          <SafetyNotice
+  variant={user?.role === "employer" ? "employer" : "compact"}
+/>
         </aside>
 
         <main className="main-content">
