@@ -12,6 +12,7 @@ from .models import (
     Job,
     JobReport,
     JobLocationReport,
+    JobMedia,
     Notification,
     Placement,
     PlacementConfirmation,
@@ -22,7 +23,7 @@ from .models import (
 
 class JobApiTests(APITestCase):
     def setUp(self):
-        self.employer = User.objects.create_user(email="employer@example.com", username="employer", role="employer", phone_verified_at=timezone.now(), password="StrongPass778!")
+        self.employer = User.objects.create_user(email="employer@example.com", username="employer", role="employer", password="StrongPass778!")
         EmployerProfile.objects.create(user=self.employer, organisation_name="Test Company")
         self.job = Job.objects.create(employer=self.employer, title="Driver", category="Transport", description="Delivery driver", employment_type="contract", province="Gauteng", city="Johannesburg", closing_date=timezone.localdate() + timedelta(days=7), status="published")
     def test_public_can_browse_jobs(self):
@@ -36,14 +37,12 @@ class JobApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["status"], "pending")
 
-    def test_unverified_employer_cannot_submit_job(self):
-        self.employer.phone_verified_at = None
-        self.employer.save(update_fields=["phone_verified_at"])
+    def test_job_creation_does_not_require_phone_verification(self):
         self.client.force_authenticate(self.employer)
         payload = {"title":"Warehouse Assistant", "category":"Warehousing", "description":"Pick and pack", "employment_type":"temporary", "province":"Gauteng", "city":"Soweto", "closing_date": str(timezone.localdate() + timedelta(days=3))}
         response = self.client.post("/api/jobs/", payload)
-        self.assertEqual(response.status_code, 400)
-        self.assertFalse(Job.objects.filter(title="Warehouse Assistant").exists())
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Job.objects.filter(title="Warehouse Assistant").exists())
 
     def test_employer_edit_returns_listing_to_pending_review(self):
         self.client.force_authenticate(self.employer)
@@ -52,6 +51,36 @@ class JobApiTests(APITestCase):
         self.job.refresh_from_db()
         self.assertEqual(self.job.title, "Senior Delivery Driver")
         self.assertEqual(self.job.status, Job.Status.PENDING)
+
+    def test_employer_can_add_and_remove_own_job_media(self):
+        self.client.force_authenticate(self.employer)
+        upload = SimpleUploadedFile("workplace.png", b"test-image", content_type="image/png")
+        created = self.client.post(f"/api/jobs/{self.job.id}/media/", {"file": upload}, format="multipart")
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(created.data["media_type"], JobMedia.MediaType.IMAGE)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.Status.PENDING)
+
+        self.job.status = Job.Status.PUBLISHED
+        self.job.save(update_fields=["status"])
+        removed = self.client.delete(f"/api/job-media/{created.data['id']}/")
+        self.assertEqual(removed.status_code, 204)
+        self.assertFalse(JobMedia.objects.filter(pk=created.data["id"]).exists())
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.Status.PENDING)
+
+    def test_employer_cannot_remove_another_employers_media(self):
+        media = JobMedia.objects.create(
+            job=self.job,
+            file=SimpleUploadedFile("private.pdf", b"%PDF-1.4", content_type="application/pdf"),
+            media_type=JobMedia.MediaType.PDF,
+        )
+        other = User.objects.create_user(email="media-other@example.com", username="media-other", role="employer", password="StrongPass778!")
+        EmployerProfile.objects.create(user=other, organisation_name="Other Media Company")
+        self.client.force_authenticate(other)
+        response = self.client.delete(f"/api/job-media/{media.id}/")
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(JobMedia.objects.filter(pk=media.id).exists())
 
     def test_job_cannot_be_permanently_deleted(self):
         self.client.force_authenticate(self.employer)
@@ -90,7 +119,7 @@ class JobApiTests(APITestCase):
         self.assertEqual(application.status, "shortlisted")
 
     def test_submit_is_idempotent_and_creates_communication_records(self):
-        seeker = User.objects.create_user(email="apply@example.com", username="apply", role="job_seeker", phone_verified_at=timezone.now(), password="StrongPass778!")
+        seeker = User.objects.create_user(email="apply@example.com", username="apply", role="job_seeker", password="StrongPass778!")
         self.client.force_authenticate(seeker)
         cv = SimpleUploadedFile("cv.pdf", b"%PDF-1.4 test", content_type="application/pdf")
         first = self.client.post("/api/applications/submit/", {"job": self.job.id, "cover_note": "I am interested.", "consent_to_share": True, "cv": cv}, format="multipart")
@@ -103,7 +132,7 @@ class JobApiTests(APITestCase):
         self.assertEqual(Notification.objects.count(), 2)
 
     def test_cv_download_is_protected(self):
-        seeker = User.objects.create_user(email="document@example.com", username="document", role="job_seeker", phone_verified_at=timezone.now(), password="StrongPass778!")
+        seeker = User.objects.create_user(email="document@example.com", username="document", role="job_seeker", password="StrongPass778!")
         self.client.force_authenticate(seeker)
         cv = SimpleUploadedFile("cv.pdf", b"%PDF-1.4 test", content_type="application/pdf")
         submitted = self.client.post("/api/applications/submit/", {"job": self.job.id, "consent_to_share": True, "cv": cv}, format="multipart")
@@ -118,7 +147,7 @@ class JobApiTests(APITestCase):
     def test_submission_survives_employer_without_profile(self):
         employer = User.objects.create_user(email="legacy@example.com", username="legacy", role="employer", password="StrongPass778!")
         job = Job.objects.create(employer=employer, title="Support Technician", category="IT", description="Provide support", employment_type="contract", province="Gauteng", city="Johannesburg", closing_date=timezone.localdate() + timedelta(days=7), status="published")
-        seeker = User.objects.create_user(email="legacy-seeker@example.com", username="legacy-seeker", role="job_seeker", phone_verified_at=timezone.now(), password="StrongPass778!")
+        seeker = User.objects.create_user(email="legacy-seeker@example.com", username="legacy-seeker", role="job_seeker", password="StrongPass778!")
         self.client.force_authenticate(seeker)
         response = self.client.post("/api/applications/submit/", {"job": job.id, "consent_to_share": True}, format="multipart")
         self.assertEqual(response.status_code, 201)

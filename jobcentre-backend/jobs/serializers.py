@@ -77,7 +77,8 @@ class JobSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return request.build_absolute_uri(obj.employer.avatar.url) if request else obj.employer.avatar.url
     def get_employer_phone_verified(self, obj):
-        return bool(obj.employer.phone_verified_at)
+        # Retain the response key for older clients while social authentication rolls out.
+        return bool(obj.employer.email_verified and obj.employer.social_identities.exists())
     def get_display_location(self, obj):
         if obj.address_visibility == Job.AddressVisibility.HIDDEN:
             return "Location shared by the employer"

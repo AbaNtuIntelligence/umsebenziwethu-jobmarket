@@ -12,13 +12,13 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices)
     phone = models.CharField(max_length=20, blank=True)
-    phone_verified_at = models.DateTimeField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
     email_notifications = models.BooleanField(default=True)
     sms_notifications = models.BooleanField(default=False)
     whatsapp_notifications = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to="avatars/%Y/%m/", null=True, blank=True)
+    last_auth_provider = models.CharField(max_length=20, blank=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "role"]
 
@@ -53,22 +53,42 @@ class JobSeekerProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class PhoneOTPChallenge(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="phone_otp_challenges")
-    phone = models.CharField(max_length=20)
-    code_hash = models.CharField(max_length=128)
-    expires_at = models.DateTimeField()
-    attempts = models.PositiveSmallIntegerField(default=0)
-    max_attempts = models.PositiveSmallIntegerField(default=5)
-    consumed_at = models.DateTimeField(null=True, blank=True)
-    delivery_status = models.CharField(max_length=20, default="pending")
-    provider_reference = models.CharField(max_length=200, blank=True)
+class SocialIdentity(models.Model):
+    class Provider(models.TextChoices):
+        GOOGLE = "google", "Google"
+        MICROSOFT = "microsoft", "Microsoft"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="social_identities")
+    provider = models.CharField(max_length=20, choices=Provider.choices)
+    subject = models.CharField(max_length=255)
+    email_at_link = models.EmailField()
+    linked_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("provider", "subject"),
+                name="accounts_unique_social_identity",
+            ),
+        ]
+        indexes = [models.Index(fields=("user", "provider"), name="acct_social_user_prov")]
+
+
+class AuthenticationEvent(models.Model):
+    class Event(models.TextChoices):
+        SIGN_UP = "social_signup", "Social sign-up"
+        SIGN_IN = "social_signin", "Social sign-in"
+        LINK = "social_link", "Social account linked"
+        LINK_FAILED = "social_link_failed", "Social account link failed"
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="authentication_events")
+    event = models.CharField(max_length=40, choices=Event.choices)
+    provider = models.CharField(max_length=20)
+    email = models.EmailField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=300, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        indexes = [models.Index(fields=("user", "-created_at"), name="accounts_ph_user_id_9c49cc_idx")]
-
-    @property
-    def is_active(self):
-        from django.utils import timezone
-        return not self.consumed_at and self.attempts < self.max_attempts and self.expires_at > timezone.now()
+        indexes = [models.Index(fields=("-created_at", "event"), name="accounts_auth_event_idx")]

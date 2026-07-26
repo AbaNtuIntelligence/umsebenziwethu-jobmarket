@@ -28,7 +28,7 @@ A privacy-conscious Django REST API for a South African jobs marketplace. Employ
 - In-app notifications and transactional email hooks
 - Protected CV downloads, CV replacement and withdrawal
 - Optional validated user avatars with automatic file cleanup
-- Provider-independent mobile OTP verification with hashed, expiring, single-use codes
+- Google and Microsoft OpenID Connect with server-side token verification and authentication audit events
 
 ## Start on Windows (Git Bash)
 
@@ -56,12 +56,10 @@ Open:
 
 | Method | Endpoint | Access |
 |---|---|---|
-| POST | `/api/auth/register/` | Public |
+| POST | `/api/auth/social/` | Public |
 | POST | `/api/auth/login/` | Public |
 | POST | `/api/auth/token/refresh/` | Public |
 | GET/PATCH | `/api/auth/me/` | Signed in |
-| POST | `/api/auth/phone-otp/send/` | Signed in |
-| POST | `/api/auth/phone-otp/verify/` | Signed in |
 | GET/PATCH | `/api/auth/profile/` | Signed in |
 | GET | `/api/jobs/` | Public |
 | GET | `/api/jobs/{id}/` | Public |
@@ -91,21 +89,15 @@ Open:
 
 Search example: `/api/jobs/?search=driver&province=Gauteng&urgent=true&ordering=closing_date`
 
-## Registration examples
+## Social authentication
 
-Job seeker:
-
-```json
-{"email":"seeker@example.com","username":"seeker","phone":"0821234567","role":"job_seeker","password":"StrongPass778!","accept_terms":true}
-```
-
-Employer:
+The frontend obtains an OpenID Connect ID token from Google Identity Services or Microsoft Identity Platform. It sends that short-lived token to `/api/auth/social/`; Django verifies it, links or creates the local user and returns UmsebenziWethu JWTs.
 
 ```json
-{"email":"hr@example.com","username":"companyhr","phone":"0821234567","role":"employer","organisation_name":"Example Logistics","password":"StrongPass778!","accept_terms":true}
+{"provider":"google","id_token":"PROVIDER_ID_TOKEN","role":"job_seeker","accept_terms":true}
 ```
 
-Login uses `email` and `password`. Send the returned access token as `Authorization: Bearer YOUR_TOKEN`.
+Existing password accounts may still use `/api/auth/login/` during migration. A first social sign-in with a matching email returns `link_required`; repeat it with `link_password` to prove ownership and create the provider link.
 
 ## Reliable application submission
 
@@ -125,11 +117,11 @@ For a private pilot, also set `PILOT_INVITE_CODE` to a strong code shared only w
 
 `render.yaml` is included as a deployment starting point. Do not deploy applicant documents to ephemeral local storage. Configure private persistent/object storage, signed access, malware scanning and retention rules first.
 
-## Mobile OTP provider
+## Google and Microsoft configuration
 
-OTP security and delivery are separated. Django creates a six-digit code, stores only its password hash, limits attempts and resends, expires it, and marks it single-use. The configured provider receives `phone`, `code` and `expires_minutes`, sends the SMS, and returns an optional `{"reference": "provider-message-id"}`.
+Set `GOOGLE_OAUTH_CLIENT_ID`, `MICROSOFT_OAUTH_CLIENT_ID` and optionally `MICROSOFT_OAUTH_TENANT` on the backend. Set the matching `VITE_GOOGLE_CLIENT_ID`, `VITE_MICROSOFT_CLIENT_ID` and `VITE_MICROSOFT_TENANT` during the frontend build. Client IDs are public identifiers; never put provider client secrets in Vite variables.
 
-Local development uses `accounts.phone_otp.ConsoleOTPProvider`, which writes the code to the backend console. It refuses to send when `DEBUG=False`. Before enabling verification on Render, set `PHONE_OTP_PROVIDER` to the dotted class path of an SMS adapter that follows this contract. Never expose the OTP in an API response or provider logs.
+Google must allow the deployed frontend under Authorized JavaScript origins. Microsoft must register the frontend origin as a Single-page application redirect URI. Local development normally uses `http://localhost:5173`.
 
 ## Privacy baseline
 

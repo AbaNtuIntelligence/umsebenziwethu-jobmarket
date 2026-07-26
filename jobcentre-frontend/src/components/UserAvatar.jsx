@@ -1,33 +1,103 @@
-import { useEffect, useState } from "react";
-import { mediaUrl } from "../services/api";
+import { GoogleLogin } from "@react-oauth/google";
+import { getMicrosoftIdToken } from "../services/socialAuth";
 
-function initialsFor(user) {
-  const first = user?.first_name?.trim()?.[0] || user?.username?.trim()?.[0] || "U";
-  const last = user?.last_name?.trim()?.[0] || "";
-  return `${first}${last}`.toUpperCase();
-}
+export default function SocialSignInButtons({
+  onCredential,
+  disabled = false,
+  label = "Continue",
+}) {
+  const googleConfigured = Boolean(
+    import.meta.env.VITE_GOOGLE_CLIENT_ID
+  );
 
-export default function UserAvatar({ user, className = "", cacheKey, label }) {
-  const [failed, setFailed] = useState(false);
-  const src = mediaUrl(user?.avatar, cacheKey);
-  const name = label || user?.first_name || user?.username || "User";
+  const microsoftConfigured = Boolean(
+    import.meta.env.VITE_MICROSOFT_CLIENT_ID
+  );
 
-  useEffect(() => setFailed(false), [src]);
+  async function continueWithMicrosoft() {
+    try {
+      const token = await getMicrosoftIdToken();
 
-  if (src && !failed) {
+      await onCredential(
+        "microsoft",
+        token
+      );
+    } catch (error) {
+      await onCredential(
+        null,
+        null,
+        error
+      );
+    }
+  }
+
+  const providersConfigured =
+    googleConfigured ||
+    microsoftConfigured;
+
+  if (!providersConfigured) {
     return (
-      <img
-        className={className}
-        src={src}
-        alt={`${name}'s profile picture`}
-        onError={() => setFailed(true)}
-      />
+      <div className="social-auth-notice">
+        <strong>Online account sign-in is coming shortly.</strong>
+
+        <span>
+          Existing pilot members can continue using email and password below.
+        </span>
+      </div>
     );
   }
 
   return (
-    <span className={`${className} avatar-fallback`} role="img" aria-label={`${name}'s profile picture`}>
-      {initialsFor(user)}
-    </span>
+    <div
+      className="social-auth-buttons"
+      aria-label="Account sign-in options"
+    >
+      {googleConfigured && (
+        <GoogleLogin
+          onSuccess={response =>
+            onCredential(
+              "google",
+              response.credential
+            )
+          }
+          onError={() =>
+            onCredential(
+              null,
+              null,
+              new Error(
+                "Google sign-in was cancelled or could not be completed."
+              )
+            )
+          }
+          text={
+            label === "Sign up"
+              ? "signup_with"
+              : "continue_with"
+          }
+          width="360"
+        />
+      )}
+
+      {microsoftConfigured && (
+        <button
+          type="button"
+          className="social-provider microsoft"
+          onClick={continueWithMicrosoft}
+          disabled={disabled}
+        >
+          <span
+            className="microsoft-mark"
+            aria-hidden="true"
+          >
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+
+          {label} with Microsoft
+        </button>
+      )}
+    </div>
   );
 }

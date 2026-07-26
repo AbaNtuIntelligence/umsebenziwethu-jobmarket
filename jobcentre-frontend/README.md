@@ -13,13 +13,16 @@ npm run dev
 
 Keep Django running at `http://127.0.0.1:8000` and open the Vite URL, normally `http://localhost:5173`.
 
+Configure `VITE_GOOGLE_CLIENT_ID`, `VITE_MICROSOFT_CLIENT_ID` and `VITE_MICROSOFT_TENANT` in `.env`. Do not place OAuth client secrets in frontend environment variables.
+
 ## Included
 
 - Familiar marketplace timeline and responsive three-column desktop layout
 - Mobile bottom navigation
 - Public job search and browsing
 - Job details with image, video and PDF rendering
-- Employer/job-seeker registration and JWT login
+- Google and Microsoft sign-up/sign-in with server-verified OIDC tokens
+- Safe one-time social linking for existing password accounts
 - Employer dashboard and multi-file job posting
 - Saved jobs and applications
 - Automatic access-token refresh

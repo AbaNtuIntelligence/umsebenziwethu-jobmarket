@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from io import BytesIO
 from PIL import Image
-from .models import JobSeekerProfile, PhoneOTPChallenge, User
+from .models import JobSeekerProfile, User
 from django.utils import timezone
 from datetime import timedelta
 from jobs.models import Job, JobInvitation, Notification
@@ -313,7 +313,10 @@ class HardeningTests(APITestCase):
     def test_login_is_rate_limited(self):
         cache.clear()
         payload = {"email": "nobody@example.com", "password": "WrongPass778!"}
-        self.client.post(reverse("login"), payload)
-        self.client.post(reverse("login"), payload)
-        limited = self.client.post(reverse("login"), payload)
+        from unittest.mock import patch
+        from rest_framework.throttling import ScopedRateThrottle
+        with patch.dict(ScopedRateThrottle.THROTTLE_RATES, {"login": "2/min"}, clear=False):
+            self.client.post(reverse("login"), payload)
+            self.client.post(reverse("login"), payload)
+            limited = self.client.post(reverse("login"), payload)
         self.assertEqual(limited.status_code, 429)

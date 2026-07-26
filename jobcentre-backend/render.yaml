@@ -22,7 +22,13 @@ services:
         sync: false
       - key: PILOT_INVITE_CODE
         sync: false
-      - key: PHONE_OTP_PROVIDER
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_OAUTH_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_OAUTH_TENANT
+        value: common
+      - key: THROTTLE_SOCIAL_AUTH
         sync: false
       - key: MEDIA_ROOT
         value: /var/data/media

@@ -28,6 +28,14 @@ export function AuthProvider({children}) {
     localStorage.setItem("access_token", data.access); localStorage.setItem("refresh_token", data.refresh);
     const profile = await api.get("/auth/me/"); setUser(profile.data); setSessionExpired(false); return profile.data;
   }
+  async function socialLogin(provider, idToken, extra = {}) {
+    const {data} = await api.post("/auth/social/", {provider, id_token: idToken, ...extra});
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("refresh_token", data.refresh);
+    setUser(data.user);
+    setSessionExpired(false);
+    return data;
+  }
   function updateUser(nextUser, {avatarChanged = false} = {}) {
     setUser(nextUser);
     if (avatarChanged) setAvatarRevision(Date.now());
@@ -40,6 +48,6 @@ export function AuthProvider({children}) {
     setUser(null);
     setSessionExpired(false);
   }
-  return <AuthContext.Provider value={{user, loading, login, logout, setUser, updateUser, avatarRevision, sessionExpired}}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{user, loading, login, socialLogin, logout, setUser, updateUser, avatarRevision, sessionExpired}}>{children}</AuthContext.Provider>;
 }
 export const useAuth = () => useContext(AuthContext);

@@ -150,6 +150,111 @@ body {
   display: none;
 }
 
+.social-auth-buttons {
+  display: grid;
+  justify-items: stretch;
+  gap: 11px;
+  margin: 20px 0;
+}
+
+.social-auth-buttons > div:first-child {
+  display: flex;
+  justify-content: center;
+}
+
+.social-provider {
+  min-height: 42px;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1f1f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.social-provider:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.microsoft-mark {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.microsoft-mark i:nth-child(1) { background: #f25022; }
+.microsoft-mark i:nth-child(2) { background: #7fba00; }
+.microsoft-mark i:nth-child(3) { background: #00a4ef; }
+.microsoft-mark i:nth-child(4) { background: #ffb900; }
+
+.provider-unavailable {
+  padding: 9px 11px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 21px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
+.legacy-login {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.legacy-login summary {
+  color: var(--navy);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.legacy-login[open] summary {
+  margin-bottom: 14px;
+}
+
+.link-account-box {
+  padding: 16px;
+  border: 1px solid var(--gold);
+  border-radius: 11px;
+  background: #fffbeb;
+}
+
+.link-account-box h2,
+.link-account-box p {
+  margin: 0;
+}
+
+.social-safety-note,
+.onboarding-note {
+  display: block;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 @media (max-width: 1000px) {
   .mobile-category-browser {
     display: grid;
@@ -530,4 +635,22 @@ body {
     color: #0d624b;
     background: #e7f5ee;
   }
+}
+
+
+.social-auth-notice {
+  display: grid;
+  gap: 6px;
+  margin: 20px 0;
+  padding: 14px;
+  border: 1px solid #dfe4ea;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.social-auth-notice strong {
+  color: #10263f;
 }

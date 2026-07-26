@@ -5,8 +5,8 @@ from django.utils.http import urlsafe_base64_decode
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
-from .models import EmployerProfile, JobSeekerProfile, User
-from .phone_otp import normalize_phone
+from .models import EmployerProfile, JobSeekerProfile, SocialIdentity, User
+from .phone import normalize_phone
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -73,20 +73,21 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
+    auth_providers = serializers.SerializerMethodField()
+    has_password = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ("id", "email", "username", "first_name", "last_name", "phone", "phone_verified_at", "role", "avatar", "email_verified", "terms_accepted_at", "email_notifications", "sms_notifications", "whatsapp_notifications", "date_joined")
-        read_only_fields = ("id", "email", "phone_verified_at", "role", "email_verified", "terms_accepted_at", "date_joined")
+        fields = ("id", "email", "username", "first_name", "last_name", "phone", "role", "avatar", "email_verified", "terms_accepted_at", "email_notifications", "sms_notifications", "whatsapp_notifications", "last_auth_provider", "auth_providers", "has_password", "date_joined")
+        read_only_fields = ("id", "email", "role", "email_verified", "terms_accepted_at", "last_auth_provider", "auth_providers", "has_password", "date_joined")
+    def get_auth_providers(self, obj):
+        return list(obj.social_identities.values_list("provider", flat=True))
+    def get_has_password(self, obj):
+        return obj.has_usable_password()
     def validate_phone(self, value):
         try:
             return normalize_phone(value)
         except Exception as error:
             raise serializers.ValidationError(error.messages if hasattr(error, "messages") else str(error))
-    def update(self, instance, validated_data):
-        new_phone = validated_data.get("phone")
-        if new_phone and new_phone != instance.phone:
-            instance.phone_verified_at = None
-        return super().update(instance, validated_data)
     def validate_avatar(self, value):
         if value is None:
             return value
@@ -98,12 +99,13 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
 class AccountDeleteSerializer(serializers.Serializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     confirm = serializers.CharField(write_only=True)
     def validate(self, attrs):
         if attrs["confirm"] != "DELETE":
             raise serializers.ValidationError({"confirm": "Type DELETE to confirm."})
-        if not self.context["request"].user.check_password(attrs["password"]):
+        user = self.context["request"].user
+        if user.has_usable_password() and not user.check_password(attrs.get("password", "")):
             raise serializers.ValidationError({"password": "Incorrect password."})
         return attrs
 
@@ -111,8 +113,18 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 
-class PhoneOTPVerifySerializer(serializers.Serializer):
-    code = serializers.RegexField(r"^\d{6}$", error_messages={"invalid": "Enter the six-digit code."})
+class SocialAuthSerializer(serializers.Serializer):
+    provider = serializers.ChoiceField(choices=SocialIdentity.Provider.choices)
+    id_token = serializers.CharField(trim_whitespace=False)
+    role = serializers.ChoiceField(choices=User.Role.choices, required=False)
+    accept_terms = serializers.BooleanField(required=False, default=False)
+    organisation_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    link_password = serializers.CharField(required=False, allow_blank=True, trim_whitespace=False)
+
+    def validate(self, attrs):
+        if attrs.get("role") == User.Role.EMPLOYER and not attrs.get("organisation_name", "").strip():
+            raise serializers.ValidationError({"organisation_name": "Enter the organisation name."})
+        return attrs
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uid = serializers.CharField()

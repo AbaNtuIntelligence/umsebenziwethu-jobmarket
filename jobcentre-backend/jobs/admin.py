@@ -21,32 +21,210 @@ from .models import (
     SavedJob,
 )
 
+
+
+
+from django.contrib import admin, messages
+from django.utils import timezone
+
+from .models import Job
+
+
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ("title", "employer", "city", "municipality", "location_review_status", "urgent", "closing_date", "status")
-    list_filter = ("status", "location_review_status", "address_visibility", "location_precision", "street_view_enabled", "urgent", "employment_type", "province", "district")
-    search_fields = ("title", "employer__employer_profile__organisation_name", "city", "suburb", "municipality", "district", "postal_code", "public_location")
-    actions = ("publish_jobs", "close_jobs", "mark_locations_reviewed", "mark_locations_needing_changes")
-    fieldsets = (
-        ("Opportunity", {"fields": ("employer", "title", "category", "description", "requirements", "employment_type", "workplace", "positions_available", "urgent", "closing_date", "status", "rejection_reason")}),
-        ("Public area", {"fields": ("province", "district", "municipality", "city", "suburb", "postal_code", "public_location")}),
-        ("Protected precise location", {"fields": ("street_address", "latitude", "longitude", "google_place_id", "location_precision", "address_visibility", "street_view_enabled")}),
-        ("Location review", {"fields": ("location_review_status", "location_confirmed_by_employer_at", "location_verified_by_admin_at")}),
-        ("Pay and timestamps", {"fields": ("salary_min", "salary_max", "created_at", "updated_at")}),
+    list_display = (
+        "id",
+        "title",
+        "employer",
+        "city",
+        "municipality",
+        "location_review_status",
+        "urgent",
+        "closing_date",
+        "status",
+        "created_at",
     )
-    readonly_fields = ("created_at", "updated_at", "location_confirmed_by_employer_at", "location_verified_by_admin_at")
+
+    list_filter = (
+        "status",
+        "location_review_status",
+        "address_visibility",
+        "location_precision",
+        "street_view_enabled",
+        "urgent",
+        "employment_type",
+        "province",
+        "district",
+        "created_at",
+    )
+
+    search_fields = (
+        "=id",
+        "title",
+        "employer__email",
+        "employer__employer_profile__organisation_name",
+        "city",
+        "suburb",
+        "municipality",
+        "district",
+        "postal_code",
+        "public_location",
+    )
+
+    ordering = ("-created_at",)
+    date_hierarchy = "created_at"
+    list_per_page = 50
+    list_select_related = ("employer",)
+
+    actions = (
+        "approve_and_publish_jobs",
+        "publish_jobs",
+        "close_jobs",
+        "mark_locations_reviewed",
+        "mark_locations_needing_changes",
+    )
+
+    fieldsets = (
+        (
+            "Opportunity",
+            {
+                "fields": (
+                    "employer",
+                    "title",
+                    "category",
+                    "description",
+                    "requirements",
+                    "employment_type",
+                    "workplace",
+                    "positions_available",
+                    "urgent",
+                    "closing_date",
+                    "status",
+                    "rejection_reason",
+                )
+            },
+        ),
+        (
+            "Public area",
+            {
+                "fields": (
+                    "province",
+                    "district",
+                    "municipality",
+                    "city",
+                    "suburb",
+                    "postal_code",
+                    "public_location",
+                )
+            },
+        ),
+        (
+            "Protected precise location",
+            {
+                "fields": (
+                    "street_address",
+                    "latitude",
+                    "longitude",
+                    "google_place_id",
+                    "location_precision",
+                    "address_visibility",
+                    "street_view_enabled",
+                )
+            },
+        ),
+        (
+            "Location review",
+            {
+                "fields": (
+                    "location_review_status",
+                    "location_confirmed_by_employer_at",
+                    "location_verified_by_admin_at",
+                )
+            },
+        ),
+        (
+            "Pay and timestamps",
+            {
+                "fields": (
+                    "salary_min",
+                    "salary_max",
+                    "created_at",
+                    "updated_at",
+                )
+            },
+        ),
+    )
+
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "location_confirmed_by_employer_at",
+        "location_verified_by_admin_at",
+    )
+
+    @admin.action(description="Approve and publish selected jobs")
+    def approve_and_publish_jobs(self, request, queryset):
+        updated = queryset.update(
+            status=Job.Status.PUBLISHED,
+            location_review_status=Job.LocationReviewStatus.REVIEWED,
+            location_verified_by_admin_at=timezone.now(),
+            rejection_reason="",
+        )
+
+        self.message_user(
+            request,
+            f"{updated} job(s) approved and published.",
+            level=messages.SUCCESS,
+        )
+
     @admin.action(description="Publish selected jobs")
     def publish_jobs(self, request, queryset):
-        queryset.update(status=Job.Status.PUBLISHED)
+        updated = queryset.update(
+            status=Job.Status.PUBLISHED,
+            rejection_reason="",
+        )
+
+        self.message_user(
+            request,
+            f"{updated} job(s) published.",
+            level=messages.SUCCESS,
+        )
+
     @admin.action(description="Close selected jobs")
     def close_jobs(self, request, queryset):
-        queryset.update(status=Job.Status.CLOSED)
+        updated = queryset.update(status=Job.Status.CLOSED)
+
+        self.message_user(
+            request,
+            f"{updated} job(s) closed.",
+            level=messages.SUCCESS,
+        )
+
     @admin.action(description="Mark selected locations as reviewed")
     def mark_locations_reviewed(self, request, queryset):
-        queryset.update(location_review_status=Job.LocationReviewStatus.REVIEWED, location_verified_by_admin_at=timezone.now())
+        updated = queryset.update(
+            location_review_status=Job.LocationReviewStatus.REVIEWED,
+            location_verified_by_admin_at=timezone.now(),
+        )
+
+        self.message_user(
+            request,
+            f"{updated} job location(s) marked as reviewed.",
+            level=messages.SUCCESS,
+        )
+
     @admin.action(description="Mark selected locations as needing changes")
     def mark_locations_needing_changes(self, request, queryset):
-        queryset.update(location_review_status=Job.LocationReviewStatus.NEEDS_CHANGES, location_verified_by_admin_at=None)
+        updated = queryset.update(
+            location_review_status=Job.LocationReviewStatus.NEEDS_CHANGES,
+            location_verified_by_admin_at=None,
+        )
+
+        self.message_user(
+            request,
+            f"{updated} job location(s) marked as needing changes.",
+            level=messages.WARNING,
+        )
 
 admin.site.register(Application)
 admin.site.register(SavedJob)

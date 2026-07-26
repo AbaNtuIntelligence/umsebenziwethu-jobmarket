@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
   const method = (config.method || "get").toLowerCase();
   const path = requestPath(config);
   const isPublicJobRead = method === "get" && /\/jobs(?:\/\d+)?\/$/.test(path);
-  const isPublicAuth = /\/auth\/(?:login|logout|register|token\/refresh|password-reset|password-reset-confirm)\/$/.test(path);
+  const isPublicAuth = /\/auth\/(?:login|logout|register|social|token\/refresh|password-reset|password-reset-confirm)\/$/.test(path);
   if (token && !isPublicJobRead && !isPublicAuth) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -27,7 +27,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use((response) => response, async (error) => {
   const original = error.config;
   const path = original ? requestPath(original) : "";
-  const isPublicAuth = /\/auth\/(?:login|logout|register|token\/refresh)\/$/.test(path);
+  const isPublicAuth = /\/auth\/(?:login|logout|register|social|token\/refresh)\/$/.test(path);
   const refreshToken = localStorage.getItem("refresh_token");
 
   if (error.response?.status === 401 && !isPublicAuth && !original?._retry && refreshToken) {

@@ -3,17 +3,21 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.models import update_last_login
+from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from .models import EmployerProfile, JobSeekerProfile, User
+from .models import AuthenticationEvent, EmployerProfile, JobSeekerProfile, SocialIdentity, User
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import AccountDeleteSerializer, EmployerProfileSerializer, JobSeekerProfileSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, PhoneOTPVerifySerializer, RegisterSerializer, TalentDirectorySerializer, UserSerializer
-from .phone_otp import send_challenge, verify_challenge
+from .serializers import AccountDeleteSerializer, EmployerProfileSerializer, JobSeekerProfileSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, RegisterSerializer, SocialAuthSerializer, TalentDirectorySerializer, UserSerializer
+from .social_auth import verify_social_token
 
 class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
@@ -23,6 +27,144 @@ class RegisterView(generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
     permission_classes = [permissions.AllowAny]
     throttle_scope = "login"
+
+
+def unique_username(email):
+    base = email.split("@", 1)[0][:120] or "member"
+    candidate = base
+    suffix = 1
+    while User.objects.filter(username=candidate).exists():
+        suffix += 1
+        candidate = f"{base[:140 - len(str(suffix))]}-{suffix}"
+    return candidate
+
+
+def authentication_event(request, event, provider, email, user=None):
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    ip_address = (forwarded.split(",", 1)[0].strip() if forwarded else request.META.get("REMOTE_ADDR")) or None
+    AuthenticationEvent.objects.create(
+        user=user,
+        event=event,
+        provider=provider,
+        email=email,
+        ip_address=ip_address,
+        user_agent=request.META.get("HTTP_USER_AGENT", "")[:300],
+    )
+
+
+class SocialAuthView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "social_auth"
+
+    @transaction.atomic
+    def post(self, request):
+        serializer = SocialAuthSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        provider = data["provider"]
+        claims = verify_social_token(provider, data["id_token"])
+
+        identity = SocialIdentity.objects.select_related("user").filter(
+            provider=provider,
+            subject=claims["subject"],
+        ).first()
+        created = False
+        linked = False
+
+        if identity:
+            user = identity.user
+            identity.save(update_fields=("last_used_at",))
+        else:
+            user = User.objects.filter(email__iexact=claims["email"]).first()
+            if user:
+                if not user.has_usable_password():
+                    return Response(
+                        {
+                            "code": "use_linked_provider",
+                            "detail": "This email is already registered with another sign-in provider. Sign in with the provider already linked to the account.",
+                        },
+                        status=409,
+                    )
+                if user.has_usable_password() and not data.get("link_password"):
+                    return Response(
+                        {
+                            "code": "link_required",
+                            "detail": "This email already has an account. Enter its current password once to link it safely.",
+                            "email": claims["email"],
+                            "provider": provider,
+                        },
+                        status=409,
+                    )
+                if user.has_usable_password() and not user.check_password(data.get("link_password", "")):
+                    authentication_event(request, AuthenticationEvent.Event.LINK_FAILED, provider, claims["email"], user)
+                    return Response(
+                        {"errors": {"link_password": ["The existing account password is incorrect."]}},
+                        status=400,
+                    )
+                linked = True
+            else:
+                if not data.get("role") or not data.get("accept_terms"):
+                    return Response(
+                        {
+                            "code": "registration_required",
+                            "detail": "Choose an account type and accept the Terms and Privacy Notice to continue.",
+                        },
+                        status=409,
+                    )
+                user = User(
+                    email=claims["email"],
+                    username=unique_username(claims["email"]),
+                    first_name=claims["first_name"],
+                    last_name=claims["last_name"],
+                    role=data["role"],
+                    email_verified=claims["email_verified"],
+                    terms_accepted_at=timezone.now(),
+                )
+                user.set_unusable_password()
+                user.save()
+                if user.role == User.Role.EMPLOYER:
+                    EmployerProfile.objects.create(
+                        user=user,
+                        organisation_name=data.get("organisation_name", "").strip(),
+                    )
+                else:
+                    JobSeekerProfile.objects.create(user=user)
+                created = True
+
+            SocialIdentity.objects.create(
+                user=user,
+                provider=provider,
+                subject=claims["subject"],
+                email_at_link=claims["email"],
+            )
+
+        if not user.is_active:
+            raise PermissionDenied("This account has been deactivated.")
+
+        updates = []
+        if claims["email_verified"] and not user.email_verified:
+            user.email_verified = True
+            updates.append("email_verified")
+        user.last_auth_provider = provider
+        updates.append("last_auth_provider")
+        user.save(update_fields=updates)
+        update_last_login(None, user)
+
+        event = AuthenticationEvent.Event.SIGN_UP if created else (
+            AuthenticationEvent.Event.LINK if linked else AuthenticationEvent.Event.SIGN_IN
+        )
+        authentication_event(request, event, provider, claims["email"], user)
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user, context={"request": request}).data,
+                "created": created,
+                "linked": linked,
+            }
+        )
 
 class RefreshTokenView(TokenRefreshView):
     permission_classes = [permissions.AllowAny]
@@ -60,31 +202,6 @@ class EmployerLogoDeleteView(APIView):
             request.user.save(update_fields=("avatar",))
         return Response(UserSerializer(request.user, context={"request": request}).data)
 
-
-class PhoneOTPSendView(APIView):
-    throttle_scope = "phone_otp_send"
-    def post(self, request):
-        if request.user.phone_verified_at:
-            return Response({"detail": "Phone number is already verified.", "phone_verified": True})
-        if not request.user.phone:
-            raise ValidationError({"phone": "Add a mobile number to your profile first."})
-        try:
-            challenge = send_challenge(request.user)
-        except Exception as error:
-            raise ValidationError({"detail": error.messages if hasattr(error, "messages") else str(error)})
-        return Response({"detail": "Verification code sent.", "expires_at": challenge.expires_at, "phone": challenge.phone})
-
-
-class PhoneOTPVerifyView(APIView):
-    throttle_scope = "phone_otp_verify"
-    def post(self, request):
-        serializer = PhoneOTPVerifySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            user = verify_challenge(request.user, serializer.validated_data["code"])
-        except Exception as error:
-            raise ValidationError({"code": error.messages if hasattr(error, "messages") else str(error)})
-        return Response({"detail": "Phone number verified successfully.", "user": UserSerializer(user).data})
 
 class ProfileView(APIView):
     def get_object_and_serializer(self, request):
