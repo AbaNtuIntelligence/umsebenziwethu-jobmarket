@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../services/api";
 
+
+
+async function register(payload) {
+  const { data } = await api.post("/auth/register/", payload);
+  return data;
+}
+
 const AuthContext = createContext(null);
 export function AuthProvider({children}) {
   const [user, setUser] = useState(null);
@@ -48,6 +55,19 @@ export function AuthProvider({children}) {
     setUser(null);
     setSessionExpired(false);
   }
-  return <AuthContext.Provider value={{user, loading, login, socialLogin, logout, setUser, updateUser, avatarRevision, sessionExpired}}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider
+  value={{
+    user,
+    loading,
+    login,
+    register,
+    socialLogin,
+    logout,
+    setUser,
+    updateUser,
+    avatarRevision,
+    sessionExpired,
+  }}
+>{children}</AuthContext.Provider>;
 }
 export const useAuth = () => useContext(AuthContext);
