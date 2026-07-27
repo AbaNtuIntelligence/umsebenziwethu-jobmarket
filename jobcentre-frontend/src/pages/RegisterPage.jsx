@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const { register, socialLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [organisationWebsite, setOrganisationWebsite] = useState("");
 
   const [role, setRole] = useState("job_seeker");
   const [organisationName, setOrganisationName] = useState("");
@@ -45,9 +46,11 @@ export default function RegisterPage() {
         phone: form.phone,
         password: form.password,
         role,
-        organisation_name:
-          role === "employer" ? organisationName.trim() : "",
-        accept_terms: true,
+       organisation_name:
+  role === "employer" ? organisationName.trim() : "",
+website:
+  role === "employer" ? organisationWebsite.trim() : "",
+accept_terms: true,
       });
 
       navigate("/login", {
@@ -88,8 +91,10 @@ export default function RegisterPage() {
       const result = await socialLogin(provider, idToken, {
         role,
         organisation_name:
-          role === "employer" ? organisationName.trim() : "",
-        accept_terms: true,
+  role === "employer" ? organisationName.trim() : "",
+website:
+  role === "employer" ? organisationWebsite.trim() : "",
+accept_terms: true,
       });
 
       navigate(
@@ -136,18 +141,53 @@ export default function RegisterPage() {
         </button>
       </div>
 
-      {role === "employer" && (
-        <label>
-          Organisation name
-          <input
-            type="text"
-            value={organisationName}
-            onChange={(event) => setOrganisationName(event.target.value)}
-            required
-            disabled={busy}
-          />
-        </label>
-      )}
+{role === "employer" && (
+  <section className="employer-signup-fields">
+    <div className="employer-signup-heading">
+      <strong>Organisation details</strong>
+      <span>Tell job seekers who is recruiting.</span>
+    </div>
+
+    <label>
+      <span className="field-label">
+        Organisation name
+        <b aria-hidden="true">*</b>
+      </span>
+
+      <input
+        type="text"
+        value={organisationName}
+        onChange={(event) => setOrganisationName(event.target.value)}
+        placeholder="Example: AbaNtu Intelligence"
+        autoComplete="organization"
+        required
+        disabled={busy}
+      />
+    </label>
+
+    <label>
+      <span className="field-label">
+        Organisation website
+        <small>Optional</small>
+      </span>
+
+      <input
+        type="url"
+        value={organisationWebsite}
+        onChange={(event) =>
+          setOrganisationWebsite(event.target.value)
+        }
+        placeholder="https://www.example.co.za"
+        autoComplete="url"
+        disabled={busy}
+      />
+
+      <small className="field-help">
+        This website may be displayed with your published opportunities.
+      </small>
+    </label>
+  </section>
+)}
 
       {error && <div className="alert error">{error}</div>}
 
